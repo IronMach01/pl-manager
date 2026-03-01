@@ -1,0 +1,2378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Restaurant P&amp;L Manager</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: #f1f5f9; }
+    .sidebar { width: 220px; min-width: 220px; background: #0f172a; min-height: 100vh; display: flex; flex-direction: column; }
+    .main-content { flex: 1; overflow-y: auto; padding: 24px; }
+    .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; cursor: pointer; color: #94a3b8; font-size: 13.5px; border-radius: 6px; margin: 2px 8px; transition: all .15s; }
+    .nav-item:hover { background: #1e293b; color: #e2e8f0; }
+    .nav-item.active { background: #1d4ed8; color: #fff; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { background: #f8fafc; font-weight: 600; color: #475569; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; padding: 8px 12px; text-align: right; border-bottom: 1px solid #e2e8f0; }
+    th:first-child { text-align: left; }
+    td { padding: 6px 12px; border-bottom: 1px solid #f1f5f9; text-align: right; color: #374151; }
+    td:first-child { text-align: left; color: #1e293b; }
+    tr:hover td { background: #f8fafc; }
+    .section-header td { background: #1e293b; color: #e2e8f0; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+    .subtotal-row td { background: #f0f9ff; color: #0369a1; font-weight: 600; }
+    .total-row td { background: #eff6ff; color: #1d4ed8; font-weight: 700; font-size: 13.5px; border-top: 2px solid #3b82f6; }
+    .net-row td { background: #022c22; color: #6ee7b7; font-weight: 700; font-size: 15px; }
+    .card { background: #fff; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); padding: 20px; }
+    .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .badge-food { background: #fef3c7; color: #92400e; }
+    .badge-alcohol { background: #ede9fe; color: #5b21b6; }
+    .badge-utilities { background: #ecfdf5; color: #065f46; }
+    .badge-other { background: #fff7ed; color: #9a3412; }
+    .badge-bank { background: #f0fdf4; color: #166534; }
+    input[type=text], input[type=number], input[type=date], input[type=email], select, input:not([type]) {
+      border: 1px solid #d1d5db; border-radius: 6px; padding: 6px 10px; font-size: 13px; outline: none; background: #fff;
+    }
+    input:focus, select:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,.15); }
+    button { cursor: pointer; border: none; border-radius: 6px; font-size: 13px; font-weight: 500; padding: 7px 14px; transition: all .15s; }
+    .btn-primary { background: #1d4ed8; color: #fff; }
+    .btn-primary:hover { background: #1e40af; }
+    .btn-danger { background: #dc2626; color: #fff; }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-ghost { background: transparent; color: #64748b; border: 1px solid #d1d5db; }
+    .btn-ghost:hover { background: #f1f5f9; }
+    .btn-success { background: #16a34a; color: #fff; }
+    .btn-success:hover { background: #15803d; }
+    .btn-amber { background: #d97706; color: #fff; }
+    .btn-amber:hover { background: #b45309; }
+    .metric-card { background: #fff; border-radius: 10px; padding: 16px 20px; border-left: 4px solid; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    /* Modal */
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .modal-box { background: #fff; border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,.25); width: 100%; max-width: 820px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+    .modal-header { padding: 18px 22px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+    .modal-body { padding: 22px; overflow-y: auto; flex: 1; }
+    .modal-footer { padding: 14px 22px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px; background: #f8fafc; }
+    /* Stepper */
+    .step-bar { display: flex; gap: 0; margin-bottom: 22px; }
+    .step { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 600; color: #94a3b8; padding: 8px 16px; background: #f1f5f9; flex: 1; }
+    .step:first-child { border-radius: 8px 0 0 8px; }
+    .step:last-child { border-radius: 0 8px 8px 0; }
+    .step.active { background: #1d4ed8; color: #fff; }
+    .step.done { background: #16a34a; color: #fff; }
+    .step-num { width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,.3); display: flex; align-items: center; justify-content: center; font-size: 11px; }
+    /* Drop zone */
+    .drop-zone { border: 2px dashed #cbd5e1; border-radius: 10px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all .2s; }
+    .drop-zone:hover, .drop-zone.drag-over { border-color: #3b82f6; background: #eff6ff; }
+    /* Mapping grid */
+    .map-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px solid #f1f5f9; }
+    /* Preview table */
+    .preview-table { font-size: 11px; }
+    .preview-table th, .preview-table td { padding: 4px 8px; font-size: 11px; }
+    /* Genius POS color accent */
+    .genius-tag { background: #fef9c3; border: 1px solid #fde047; color: #713f12; font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 600; }
+    /* Duplicate review */
+    .dup-card { border-radius: 10px; border: 1px solid #fecaca; background: #fff; margin-bottom: 14px; overflow: hidden; }
+    .dup-card.med { border-color: #fde68a; }
+    .dup-card-header { padding: 10px 16px; display: flex; align-items: center; gap: 10px; background: #fef2f2; }
+    .dup-card.med .dup-card-header { background: #fffbeb; }
+    .conf-badge-high { background: #dc2626; color: #fff; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; }
+    .conf-badge-med  { background: #d97706; color: #fff; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 999px; }
+    .dup-side { flex: 1; padding: 12px 16px; }
+    .dup-side.existing { border-right: 1px solid #f1f5f9; background: #f8fafc; }
+    .dup-field { font-size: 11px; color: #64748b; margin-bottom: 2px; }
+    .dup-value { font-size: 13px; font-weight: 600; color: #0f172a; margin-bottom: 8px; }
+    .nav-badge { background: #dc2626; color: #fff; font-size: 10px; font-weight: 700; min-width: 18px; height: 18px; border-radius: 999px; display: flex; align-items: center; justify-content: center; padding: 0 4px; margin-left: auto; }
+    .inline-dup-warn { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 8px 12px; margin-top: 8px; font-size: 12px; color: #9a3412; display: flex; gap: 8px; align-items: flex-start; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useContext, createContext, useEffect, useMemo, useCallback, useRef } = React;
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+const LOCATIONS = ['Burhans', 'Sparkdrive', 'Thurmont'];
+const ALL_LOCS = 'All Locations';
+const FOOD_VENDORS = ['SYSCO','PERFORMANCE','CONCEPT FOODS','CAPITAL SEABOARD','US FOODS','MOLINAS','MISC-FOOD'];
+const ALCOHOL_VENDORS = ['SOUTHERN','REPUBLIC NATIONAL','BREAKTHRU','PREMIUM','B.P LESKY','WANTS','FERMORE','MISC-ALCOHOL'];
+const UTILITIES = ['INSURANCE','DIRECTV','GAS','ELECTRIC','TRASH','WATER','PHONE','ALARM','SYSTEMS','DOMESTIC UNIFORM','ROBERTS OXYGEN','RENT','MISC-UTILITIES'];
+const OTHER_EXPENSES = ['STORE EXPENSES','MISC EXPENSES','ADVERTISING'];
+const BANK_CARD = ['HEARTLAND','ADJUSTMENTS'];
+// P&L line item → category lookup
+const ALL_PL_LINES = [...FOOD_VENDORS,...ALCOHOL_VENDORS,...UTILITIES,...OTHER_EXPENSES,...BANK_CARD];
+const PL_LINE_CAT = {};
+FOOD_VENDORS.forEach(v=>PL_LINE_CAT[v]='Food');
+ALCOHOL_VENDORS.forEach(v=>PL_LINE_CAT[v]='Alcohol');
+UTILITIES.forEach(v=>PL_LINE_CAT[v]='Utilities');
+OTHER_EXPENSES.forEach(v=>PL_LINE_CAT[v]='Other');
+BANK_CARD.forEach(v=>PL_LINE_CAT[v]='Bank Card');
+
+const ALL_VENDORS_DEF = [
+  {name:'Pye Barker Fire & Safety, LLC',plLine:'MISC EXPENSES',category:'Other'},
+  {name:'EI EDEN INTERNATIONAL MARKET',plLine:'MISC-FOOD',category:'Food'},
+  {name:'Southern Glazers',plLine:'SOUTHERN',category:'Alcohol'},
+  {name:'Republic',plLine:'TRASH',category:'Utilities'},
+  {name:'Town of Thurmont (E)',plLine:'ELECTRIC',category:'Utilities'},
+  {name:'Town of Thurmont (W)',plLine:'WATER',category:'Utilities'},
+  {name:'CINTAS',plLine:'DOMESTIC UNIFORM',category:'Utilities'},
+  {name:'Catoctin Banner',plLine:'ADVERTISING',category:'Other'},
+  {name:"Heller's Gas",plLine:'GAS',category:'Utilities'},
+  {name:"High's",plLine:'MISC EXPENSES',category:'Other'},
+  {name:'Osorio Bakery',plLine:'MISC-FOOD',category:'Food'},
+  {name:'Goodwill',plLine:'STORE EXPENSES',category:'Other'},
+  {name:'Cousins Hardware Inc.',plLine:'STORE EXPENSES',category:'Other'},
+  {name:'DOLLAR TREE',plLine:'STORE EXPENSES',category:'Other'},
+  {name:'COMCAST',plLine:'PHONE',category:'Utilities'},
+  {name:'AmericanPest',plLine:'MISC-UTILITIES',category:'Utilities'},
+  {name:'Eric Jemenez',plLine:'MISC EXPENSES',category:'Other'},
+  {name:'MD HVAC',plLine:'MISC EXPENSES',category:'Other'},
+  {name:'Pro Kitchen Cleaners Inc',plLine:'MISC-UTILITIES',category:'Utilities'},
+  {name:'LP Electric Co.',plLine:'MISC-UTILITIES',category:'Utilities'},
+  {name:'FREDERICK COUNTY LIQUOR BOARD',plLine:'MISC EXPENSES',category:'Other'},
+  {name:'MISC',plLine:'MISC EXPENSES',category:'Other'},
+  {name:'Cristian',plLine:'ADVERTISING',category:'Other'},
+  {name:'Celebration',plLine:'MISC EXPENSES',category:'Other'},
+  {name:'RENTALS UNLIMITED',plLine:'MISC EXPENSES',category:'Other'},
+  {name:'AMANTI BAKERY',plLine:'MISC-FOOD',category:'Food'},
+  {name:'Antietam Broadband',plLine:'PHONE',category:'Utilities'},
+  {name:'CENTRAL CITY LIQUOR',plLine:'MISC-ALCOHOL',category:'Alcohol'},
+  {name:'Columbia Gas of Maryland',plLine:'GAS',category:'Utilities'},
+  {name:'Credence',plLine:'DIRECTV',category:'Utilities'},
+  {name:'Dual Highway Liquors',plLine:'MISC-ALCOHOL',category:'Alcohol'},
+  {name:'Hagerstown Light Department',plLine:'ELECTRIC',category:'Utilities'},
+  {name:'Hagerstown Magazine',plLine:'ADVERTISING',category:'Other'},
+  {name:'Jasmin Market',plLine:'MISC-FOOD',category:'Food'},
+  {name:"Lowe's",plLine:'STORE EXPENSES',category:'Other'},
+  {name:'Mr Fermore',plLine:'FERMORE',category:'Alcohol'},
+  {name:"Sam's Club",plLine:'MISC-FOOD',category:'Food'},
+  {name:'Tropical Mercado Latino',plLine:'MISC-FOOD',category:'Food'},
+  {name:'Walmart',plLine:'MISC-FOOD',category:'Food'},
+  {name:'Erie Insurance',plLine:'INSURANCE',category:'Utilities'},
+  {name:'La Despensa',plLine:'MISC-FOOD',category:'Food'},
+  {name:'Potomac Edison',plLine:'ELECTRIC',category:'Utilities'},
+  {name:'US Hood Cleaning',plLine:'MISC-UTILITIES',category:'Utilities'},
+  {name:'Yuri Pena',plLine:'MISC-FOOD',category:'Food'},
+  {name:'Reimbursement',plLine:'MISC EXPENSES',category:'Other'},
+].map((v,i)=>({...v,id:'def_'+i,subCategory:''}));
+const CATEGORY_VENDORS = { Food:FOOD_VENDORS, Alcohol:ALCOHOL_VENDORS, Utilities:UTILITIES, Other:OTHER_EXPENSES, 'Bank Card':BANK_CARD };
+const CATEGORIES = ['Food','Alcohol','Utilities','Other','Bank Card'];
+const REV_SUMMARY_FIELDS = [
+  {key:'revItems',label:'Items'},
+  {key:'revNonRevGross',label:'Non-Revenue Items (Gross)'},
+  {key:'revPositiveAdj',label:'Positive Adjustments'},
+  {key:'revAutoPricing',label:'Auto Pricing Charges'},
+  {key:'revGrossSales',label:'Gross Sales',highlight:true},
+  {key:'revAutoPricingDisc',label:'Auto Pricing Discounts'},
+  {key:'revDiscounts',label:'Discounts'},
+  {key:'revNonRevDisc',label:'Non-Revenue Discounts'},
+  {key:'revAdjustments',label:'Adjustments'},
+  {key:'revNonRevAdj',label:'Non-Revenue Adjustments'},
+  {key:'revLoyaltyRewards',label:'Loyalty Rewards'},
+  {key:'revNetSales',label:'Net Sales',highlight:true},
+  {key:'revNonRevNet',label:'Non-Revenue Items (Net)'},
+  {key:'revTaxes',label:'Taxes'},
+  {key:'revTaxesIncl',label:'Taxes (Inclusive)'},
+  {key:'revRoomSurcharges',label:'Room Surcharges'},
+  {key:'revServiceCharges',label:'Service Charges (Large Party Gratuity)'},
+  {key:'revTips',label:'Tips'},
+  {key:'revGrossReceipts',label:'Gross Receipts',highlight:true},
+];
+const PAYROLL_FIELDS = [
+  {key:'regular',label:'Regular Wages'},{key:'salary',label:'Salary Wages'},
+  {key:'bonus',label:'Bonus'},{key:'ss',label:'Employer Social Security'},
+  {key:'med',label:'Employer Medicare'},{key:'fees',label:'Payroll Fees'},
+  {key:'tips',label:'Paid Tips (Credit Card)'},{key:'loans',label:'Loans / Advances'},
+];
+
+// Genius POS known category keywords for auto-detection
+const GENIUS_FOOD_KEYWORDS = ['food','dine','dining','kitchen','entree','appetizer','dessert','beverage food','non-alc'];
+const GENIUS_ALCOHOL_KEYWORDS = ['alcohol','bar','beer','wine','liquor','spirit','beverage alc','cocktail','draft'];
+
+// ─── Storage ──────────────────────────────────────────────────────────────────
+const STORE = 'pl_v1_data';
+function loadData() { try { return migrateLegacy(JSON.parse(localStorage.getItem(STORE))||emptyStore()); } catch { return emptyStore(); } }
+function emptyStore() { return { revenue:{}, expenses:{}, payroll:{}, vendors:ALL_VENDORS_DEF, flaggedDuplicates:[], customCategories:[], rent:{}, plLines:{ Food:[...FOOD_VENDORS], Alcohol:[...ALCOHOL_VENDORS], Utilities:[...UTILITIES], Other:[...OTHER_EXPENSES], 'Bank Card':[...BANK_CARD] } }; }
+function migrateLegacy(d) {
+  if (!d.flaggedDuplicates) d.flaggedDuplicates = [];
+  if (!d.customCategories) d.customCategories = [];
+  if (!d.rent) d.rent = {};
+  if (!d.plLines) d.plLines = { Food:[...FOOD_VENDORS], Alcohol:[...ALCOHOL_VENDORS], Utilities:[...UTILITIES], Other:[...OTHER_EXPENSES], 'Bank Card':[...BANK_CARD] };
+  // Migrate old revenue fields (foodDineIn/foodTakeout/foodDelivery/foodOther → foodSales, alcBeer/alcWine/alcLiquor → alcSales)
+  if (d.revenue) {
+    let revChanged = false;
+    for (const mo in d.revenue) {
+      for (const loc in d.revenue[mo]) {
+        const r = d.revenue[mo][loc];
+        if (r && r.foodSales === undefined) {
+          const oldFood = (r.foodDineIn||0)+(r.foodTakeout||0)+(r.foodDelivery||0)+(r.foodOther||0);
+          if (oldFood > 0) { r.foodSales = oldFood; revChanged = true; }
+        }
+        if (r && r.alcSales === undefined) {
+          const oldAlc = (r.alcBeer||0)+(r.alcWine||0)+(r.alcLiquor||0);
+          if (oldAlc > 0) { r.alcSales = oldAlc; revChanged = true; }
+        }
+      }
+    }
+    if (revChanged) saveData(d);
+  }
+  // Ensure every vendor has a unique id and plLine field
+  if (d.vendors && d.vendors.length) {
+    let changed = false;
+    d.vendors = d.vendors.map((v, i) => {
+      let u = v;
+      if (!u.id) { changed = true; u = { ...u, id: 'mig_' + i + '_' + Math.random().toString(36).slice(2,8) }; }
+      if (u.plLine === undefined) { changed = true; u = { ...u, plLine: '' }; }
+      return u;
+    });
+    if (changed) saveData(d);
+  }
+  return d;
+}
+
+// Dynamic categories hook: defaults + user-created (must be called within Ctx.Provider)
+function useAllCategories() {
+  const { data } = useApp();
+  return useMemo(() => [...CATEGORIES, ...(data.customCategories||[])], [data.customCategories]);
+}
+// Note: useAllCategories is used in VendorManagement and ExpenseEntry components only (inside Provider)
+function usePLLines() {
+  const { data } = useApp();
+  return useMemo(()=>{
+    const pl = data.plLines || { Food:FOOD_VENDORS, Alcohol:ALCOHOL_VENDORS, Utilities:UTILITIES, Other:OTHER_EXPENSES, 'Bank Card':BANK_CARD };
+    const allLines = [...(pl.Food||[]),...(pl.Alcohol||[]),...(pl.Utilities||[]),...(pl.Other||[]),...(pl['Bank Card']||[])];
+    const lineCat = {};
+    for (const cat in pl) (pl[cat]||[]).forEach(v=>lineCat[v]=cat);
+    return { plLines:pl, allPLLines:allLines, plLineCat:lineCat };
+  },[data.plLines]);
+}
+function saveData(d) { localStorage.setItem(STORE, JSON.stringify(d)); }
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function fmtCur(v) { if (!v&&v!==0) return '-'; return '$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function fmtPct(num,den) { if (!den||den===0) return '-'; return ((num/den)*100).toFixed(1)+'%'; }
+function getCurrentMonth() { return new Date().toISOString().slice(0,7); }
+function monthLabel(m) { if(!m)return''; const [y,mo]=m.split('-'); return new Date(+y,+mo-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'}); }
+function uid() { return Math.random().toString(36).slice(2)+Date.now().toString(36); }
+
+// ─── CSV Parser ───────────────────────────────────────────────────────────────
+function parseCSV(text) {
+  const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').filter(l=>l.trim());
+  if (lines.length < 2) return { headers:[], rows:[] };
+  function parseLine(line) {
+    const cells = []; let cur = ''; let inQ = false;
+    for (let i=0;i<line.length;i++) {
+      const c = line[i];
+      if (c==='"') { inQ=!inQ; }
+      else if (c===','&&!inQ) { cells.push(cur.trim()); cur=''; }
+      else { cur+=c; }
+    }
+    cells.push(cur.trim());
+    return cells;
+  }
+  const headers = parseLine(lines[0]);
+  const rows = lines.slice(1).map(l=>{ const cells=parseLine(l); const obj={}; headers.forEach((h,i)=>{ obj[h]=cells[i]||''; }); return obj; });
+  return { headers, rows };
+}
+
+// Auto-detect which CSV column likely represents each field
+function autoDetect(headers) {
+  function find(keywords) {
+    const h = headers.find(hdr => keywords.some(k=>hdr.toLowerCase().includes(k)));
+    return h||'';
+  }
+  return {
+    date: find(['date','day','period','business date']),
+    location: find(['location','store','site','unit','restaurant','branch']),
+    category: find(['category','dept','department','revenue center','type','class','group','section']),
+    netSales: find(['net sales','netsales','net_sales','net revenue','net amt']),
+    grossSales: find(['gross sales','grosssales','gross_sales','gross revenue','total sales','total revenue','amount','sales']),
+    vendor: find(['vendor','payee','supplier','merchant','company']),
+    description: find(['description','memo','notes','note','desc','item','product']),
+  };
+}
+
+// ─── Genius POS Daily Summary Parser ─────────────────────────────────────────
+function parseGeniusSummary(text, filename) {
+  const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+  function qParse(line) { const c=[]; const re=/"([^"]*)"/g; let m; while((m=re.exec(line))!==null) c.push(m[1]); return c; }
+  function money(s) { return parseFloat((s||'0').replace(/[$,]/g,''))||0; }
+
+  // Split text into named sections
+  const SEC_NAMES=['SALES','TRANSACTIONS','CASH','CLOSED TICKETS','TAX CATEGORIES','DAYPARTS','REVENUE CENTERS','GROUPS','SECTIONS','REPORT CATEGORIES'];
+  const secs={}; let cur=null, curL=[];
+  for(const raw of lines){ const ln=raw.trim(); if(!ln) continue;
+    const hdr=SEC_NAMES.find(h=>ln===h||ln.startsWith(h+' '));
+    if(hdr){ if(cur) secs[cur]=curL; cur=hdr; curL=[ln]; } else if(cur) curL.push(ln);
+  }
+  if(cur) secs[cur]=curL;
+
+  // Date range from SALES header: "SALES Mon 12-01-2025 - Wed 12-31-2025"
+  let dateRange={start:null,end:null,month:null};
+  if(secs.SALES){ const dm=secs.SALES[0].match(/(\d{2})-(\d{2})-(\d{4})\s*-\s*\w+\s+(\d{2})-(\d{2})-(\d{4})/);
+    if(dm){ dateRange.start=`${dm[3]}-${dm[1]}-${dm[2]}`; dateRange.end=`${dm[6]}-${dm[4]}-${dm[5]}`; dateRange.month=`${dm[3]}-${dm[1]}`; }
+  }
+
+  // Detect location from filename
+  let detectedLoc=null;
+  if(filename){ const fn=filename.toLowerCase(); for(const loc of LOCATIONS){ if(fn.includes(loc.toLowerCase())){detectedLoc=loc;break;} } }
+
+  // SALES section: key-value pairs
+  const salesRaw={};
+  if(secs.SALES) for(const ln of secs.SALES.slice(1)){ const c=qParse(ln); if(c.length>=2) salesRaw[c[0]]=money(c[1]); }
+
+  // Generic table parser (skip header + column names, exclude totals)
+  function tbl(name,min){ const rows=[]; if(!secs[name])return rows;
+    for(const ln of secs[name].slice(2)){ const c=qParse(ln); if(c.length>=min&&!c[0].toLowerCase().startsWith('total')) rows.push(c); } return rows; }
+
+  const transactions=tbl('TRANSACTIONS',5).map(c=>({type:c[0],count:parseInt(c[1])||0,amount:money(c[2]),tip:money(c[3]),total:money(c[4])}));
+  const groups=tbl('GROUPS',4).map(c=>({name:c[0],qty:parseInt(c[1])||0,net:money(c[2]),gross:money(c[3])}));
+  const menuSections=tbl('SECTIONS',4).map(c=>({name:c[0],qty:parseInt(c[1])||0,net:money(c[2]),gross:money(c[3])}));
+  const revCenters=tbl('REVENUE CENTERS',5).map(c=>({name:c[0],qty:parseInt(c[1])||0,net:money(c[4])}));
+  const dayparts=tbl('DAYPARTS',5).map(c=>({name:c[0],qty:parseInt(c[1])||0,net:money(c[4])}));
+
+  // ── Food from GROUPS ──
+  const F_KW=['food','online food','menu'];
+  let foodNet=0; const foodGroups=[];
+  for(const g of groups){ const n=g.name.toLowerCase();
+    if(F_KW.some(k=>n.includes(k))){ foodNet+=g.net; foodGroups.push(g); }
+  }
+
+  // ── Alcohol from specific SECTIONS types ──
+  const ALC_SEC_TYPES=['bottle beer','draft beer','liquor a-h','liquor i-p','liquor q-z','margaritas','wine'];
+  let alcNet=0; const alcItems=[];
+  for(const s of menuSections){
+    if(ALC_SEC_TYPES.some(k=>s.name.toLowerCase()===k)){ alcNet+=s.net; alcItems.push(s); }
+  }
+  let beerNet=0, wineNet=0, liqNet=alcNet;
+
+  return {
+    valid:!!(secs.SALES&&(secs.GROUPS||secs.SECTIONS)),
+    dateRange, detectedLoc,
+    salesRaw,
+    sales:{ grossSales:salesRaw['Gross Sales']||0, netSales:salesRaw['Net Sales']||0,
+      discounts:Math.abs(salesRaw['Discounts']||0)+Math.abs(salesRaw['Auto Pricing Discounts']||0),
+      adjustments:Math.abs(salesRaw['Adjustments']||0), taxes:salesRaw['Taxes']||0,
+      tips:salesRaw['Tips']||0, grossReceipts:salesRaw['Gross Receipts']||0 },
+    transactions, groups, foodGroups, alcItems, menuSections, revCenters, dayparts,
+    foodNet, alcNet, beerNet, wineNet, liqNet,
+  };
+}
+
+// ─── Context ──────────────────────────────────────────────────────────────────
+const Ctx = createContext(null);
+function useApp() { return useContext(Ctx); }
+
+// ─── Icons ────────────────────────────────────────────────────────────────────
+const Icon = ({ name, size=16 }) => {
+  const s = {width:size,height:size,fill:'none',viewBox:'0 0 24 24',stroke:'currentColor',strokeWidth:2};
+  const icons = {
+    dashboard: <svg {...s}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>,
+    pl: <svg {...s}><path d="M9 17H7a2 2 0 01-2-2V9a2 2 0 012-2h10a2 2 0 012 2v2"/><path d="M13 17h4l3-3-4-4-3 3z"/></svg>,
+    revenue: <svg {...s}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
+    expense: <svg {...s}><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/></svg>,
+    payroll: <svg {...s}><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>,
+    vendor: <svg {...s}><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+    trash: <svg {...s}><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>,
+    add: <svg {...s}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+    export: <svg {...s}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
+    upload: <svg {...s}><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>,
+    check: <svg {...s}><polyline points="20 6 9 17 4 12"/></svg>,
+    x: <svg {...s}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+    arrow: <svg {...s}><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>,
+    info: <svg {...s}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>,
+    import: <svg {...s}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 5 17 10"/><line x1="12" y1="5" x2="12" y2="15"/></svg>,
+    flag: <svg {...s}><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>,
+    swap: <svg {...s}><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 014-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg>,
+    scan: <svg {...s}><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>,
+  };
+  return icons[name]||null;
+};
+
+// ─── Sidebar ──────────────────────────────────────────────────────────────────
+function Sidebar({ page, setPage }) {
+  const { data } = useApp();
+  const pendingCount = useMemo(() => (data.flaggedDuplicates||[]).filter(f=>f.status==='pending').length, [data.flaggedDuplicates]);
+  const nav = [
+    {id:'dashboard',label:'Dashboard',icon:'dashboard'},
+    {id:'pl',label:'P&L Report',icon:'pl'},
+    {id:'revenue',label:'Revenue Entry',icon:'revenue'},
+    {id:'expenses',label:'Expense Entry',icon:'expense'},
+    {id:'payroll',label:'Payroll Entry',icon:'payroll'},
+    {id:'vendors',label:'Vendor Map',icon:'vendor'},
+    {id:'duplicates',label:'Dup. Review',icon:'flag', badge: pendingCount},
+  ];
+  return (
+    <div className="sidebar">
+      <div style={{padding:'20px 16px 16px'}}>
+        <div style={{color:'#f1f5f9',fontWeight:700,fontSize:15}}>Restaurant P&L</div>
+        <div style={{color:'#64748b',fontSize:11,marginTop:2}}>Multi-Location Manager</div>
+      </div>
+      <div style={{flex:1}}>
+        {nav.map(n=>(
+          <div key={n.id} className={`nav-item${page===n.id?' active':''}`} onClick={()=>setPage(n.id)}>
+            <Icon name={n.icon}/>{n.label}
+            {n.badge>0 && <span className="nav-badge">{n.badge}</span>}
+          </div>
+        ))}
+      </div>
+      <div style={{padding:'12px 16px',color:'#475569',fontSize:11,borderTop:'1px solid #1e293b'}}>v4.3 · Editable P&L Lines</div>
+    </div>
+  );
+}
+
+// ─── Header ───────────────────────────────────────────────────────────────────
+function Header({ title, subtitle, children }) {
+  const { month, setMonth, location, setLocation } = useApp();
+  const months = useMemo(()=>{ const now=new Date(); const arr=[]; for(let i=11;i>=0;i--){ const d=new Date(now.getFullYear(),now.getMonth()-i,1); arr.push(d.toISOString().slice(0,7)); } return arr; },[]);
+  return (
+    <div style={{marginBottom:24}}>
+      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',flexWrap:'wrap',gap:12}}>
+        <div>
+          <h1 style={{margin:0,fontSize:22,fontWeight:700,color:'#0f172a'}}>{title}</h1>
+          {subtitle&&<div style={{color:'#64748b',fontSize:13,marginTop:3}}>{subtitle}</div>}
+        </div>
+        <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+          <select value={month} onChange={e=>setMonth(e.target.value)}>
+            {months.map(m=><option key={m} value={m}>{monthLabel(m)}</option>)}
+          </select>
+          <select value={location} onChange={e=>setLocation(e.target.value)}>
+            <option value={ALL_LOCS}>{ALL_LOCS}</option>
+            {LOCATIONS.map(l=><option key={l} value={l}>{l}</option>)}
+          </select>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Duplicate Detection Engine ───────────────────────────────────────────────
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function detectDuplicates(incomingList, existingExpenses) {
+  // Returns { clean: [...], flags: [...] }
+  // clean  → safe to import directly
+  // flags  → potential duplicates needing review
+  const flags = [];
+  const clean = [];
+  for (const inc of incomingList) {
+    let matched = null;
+    for (const ex of existingExpenses) {
+      const amtClose   = Math.abs((+inc.amount||0) - (+ex.amount||0)) < 0.02;
+      const vendorSame = (inc.vendor||'').toUpperCase().trim() === (ex.vendor||'').toUpperCase().trim();
+      const dayDiff    = (inc.date && ex.date) ? Math.abs(new Date(inc.date)-new Date(ex.date))/DAY_MS : 999;
+
+      // HIGH — invoice number match (strongest signal)
+      if (inc.invoiceNumber && ex.invoiceNumber &&
+          inc.invoiceNumber.trim().toUpperCase() === ex.invoiceNumber.trim().toUpperCase()) {
+        matched = { existing:ex, confidence:'HIGH', reason:'Matching invoice / receipt number' };
+        break;
+      }
+      // HIGH — exact date + vendor + amount
+      if (inc.date === ex.date && vendorSame && amtClose) {
+        matched = { existing:ex, confidence:'HIGH', reason:'Same date, vendor & amount' };
+        break;
+      }
+      // MED — same vendor + amount within 3 days
+      if (vendorSame && amtClose && dayDiff > 0 && dayDiff <= 3) {
+        matched = { existing:ex, confidence:'MED', reason:`Same vendor & amount, ${Math.round(dayDiff)} day(s) apart` };
+        break;
+      }
+    }
+    if (matched) {
+      flags.push({ id:uid(), incoming:{...inc}, existingId:matched.existing.id, existing:{...matched.existing}, confidence:matched.confidence, reason:matched.reason, month:inc._month||'', status:'pending' });
+    } else {
+      clean.push(inc);
+    }
+  }
+  return { clean, flags };
+}
+
+// Quick inline duplicate check (for manual entry warning — returns first match or null)
+function quickDupCheck(entry, existingExpenses) {
+  if (!entry.vendor || !entry.amount) return null;
+  for (const ex of existingExpenses) {
+    const amtClose   = Math.abs((+entry.amount||0) - (+ex.amount||0)) < 0.02;
+    const vendorSame = (entry.vendor||'').toUpperCase().trim() === (ex.vendor||'').toUpperCase().trim();
+    const dayDiff    = (entry.date && ex.date) ? Math.abs(new Date(entry.date)-new Date(ex.date))/DAY_MS : 999;
+    if (vendorSame && amtClose && dayDiff <= 1) return ex;
+  }
+  return null;
+}
+
+// Epson ScanSmart column auto-detect (extends base autoDetect)
+function epsonAutoDetect(headers) {
+  function find(...kws) {
+    const h = headers.find(hdr => kws.some(k => hdr.toLowerCase().includes(k)));
+    return h || '';
+  }
+  return {
+    date:          find('date', 'transaction date', 'receipt date', 'invoice date', 'scan date'),
+    vendor:        find('vendor', 'store name', 'store', 'merchant', 'company', 'payee', 'supplier'),
+    total:         find('total', 'grand total', 'amount', 'total amount'),
+    tax:           find('tax amount', 'sales tax', 'tax', 'vat'),
+    invoiceNumber: find('invoice number', 'invoice #', 'receipt number', 'receipt #', 'invoice no', 'ref', 'number', 'doc'),
+    category:      find('category', 'expense category', 'expense type'),
+    paymentMethod: find('payment method', 'payment', 'method', 'tender'),
+    notes:         find('memo', 'notes', 'description', 'comment', 'remarks'),
+    location:      find('location', 'store', 'site', 'unit', 'branch'),
+    docType:       find('type', 'document type', 'doc type'),
+  };
+}
+
+// ─── Epson ScanSmart Import Modal ─────────────────────────────────────────────
+function EpsonImportModal({ onClose }) {
+  const { data, setData, month } = useApp();
+  const [step, setStep]           = useState(0);
+  const [parsed, setParsed]       = useState(null);
+  const [mapping, setMapping]     = useState({});
+  const [locMode, setLocMode]     = useState('fixed');
+  const [fixedLoc, setFixedLoc]   = useState(LOCATIONS[0]);
+  const [amtMode, setAmtMode]     = useState('total');   // 'total' | 'total-tax'
+  const [preview, setPreview]     = useState([]);
+  const [result, setResult]       = useState(null);      // { imported, flagged }
+  const fileRef = useRef();
+
+  function handleFile(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const p = parseCSV(e.target.result);
+      setParsed(p);
+      setMapping(epsonAutoDetect(p.headers));
+      setStep(1);
+    };
+    reader.readAsText(file);
+  }
+
+  function buildPreview() {
+    if (!parsed) return [];
+    const { rows } = parsed;
+    return rows.map(row => {
+      const rawTotal = (row[mapping.total]||'').replace(/[$,\s]/g,'');
+      const rawTax   = (row[mapping.tax]||'').replace(/[$,\s]/g,'');
+      const total    = parseFloat(rawTotal)||0;
+      const tax      = parseFloat(rawTax)||0;
+      const amount   = amtMode==='total-tax' ? Math.max(total - tax, 0) : total;
+      if (amount === 0) return null;
+      const vendor   = (row[mapping.vendor]||'').toUpperCase().trim();
+      if (!vendor) return null;
+      const date     = (row[mapping.date]||'').trim() || (month+'-01');
+      const invNum   = (row[mapping.invoiceNumber]||'').trim();
+      const notes    = (row[mapping.notes]||'').trim();
+      const rawCat   = (row[mapping.category]||'').trim();
+      const pmMethod = (row[mapping.paymentMethod]||'').trim();
+      const loc      = locMode==='column' ? (row[mapping.location]||fixedLoc) : fixedLoc;
+      // Look up category from Vendor Map (case-insensitive)
+      const vUp = vendor.toUpperCase();
+      const vm = (data.vendors||[]).find(v=>(v.name||'').toUpperCase()===vUp);
+      const category = vm ? vm.category : (rawCat || 'Other');
+      return { id:uid(), date, vendor, amount, invoiceNumber:invNum, category, location:loc, notes: [notes, pmMethod ? `Payment: ${pmMethod}` : ''].filter(Boolean).join(' | '), _month:month };
+    }).filter(Boolean);
+  }
+
+  function handlePreview() { setPreview(buildPreview()); setStep(2); }
+
+  function handleImport() {
+    const allExisting = data.expenses[month] || [];
+    const { clean, flags } = detectDuplicates(preview, allExisting);
+    setData(prev => {
+      const d = {...prev};
+      // Add clean entries
+      if (!d.expenses[month]) d.expenses = {...d.expenses, [month]:[]};
+      d.expenses[month] = [...clean, ...d.expenses[month]];
+      // Queue flagged for review
+      d.flaggedDuplicates = [...(d.flaggedDuplicates||[]), ...flags];
+      return d;
+    });
+    setResult({ imported: clean.length, flagged: flags.length });
+    setStep(3);
+  }
+
+  if (step === 3 && result) return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-box" style={{maxWidth:500}} onClick={e=>e.stopPropagation()}>
+        <div className="modal-body" style={{textAlign:'center',padding:'40px 30px'}}>
+          <div style={{fontSize:44,marginBottom:12}}>✅</div>
+          <div style={{fontWeight:700,fontSize:18,color:'#0f172a',marginBottom:8}}>Epson Import Complete</div>
+          <div style={{display:'flex',justifyContent:'center',gap:24,marginTop:16}}>
+            <div style={{textAlign:'center'}}>
+              <div style={{fontSize:28,fontWeight:700,color:'#16a34a'}}>{result.imported}</div>
+              <div style={{fontSize:12,color:'#64748b'}}>Imported cleanly</div>
+            </div>
+            {result.flagged > 0 && (
+              <div style={{textAlign:'center'}}>
+                <div style={{fontSize:28,fontWeight:700,color:'#dc2626'}}>{result.flagged}</div>
+                <div style={{fontSize:12,color:'#64748b'}}>Flagged for review</div>
+              </div>
+            )}
+          </div>
+          {result.flagged > 0 && <div style={{marginTop:14,background:'#fef2f2',border:'1px solid #fecaca',borderRadius:8,padding:'10px 14px',fontSize:12,color:'#991b1b'}}>⚠️ {result.flagged} possible duplicate{result.flagged!==1?'s':''} sent to <b>Dup. Review</b> in the sidebar — please resolve them.</div>}
+          <button className="btn-primary" style={{marginTop:20}} onClick={onClose}>Done</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-box" onClick={e=>e.stopPropagation()}>
+        <div className="modal-header">
+          <div>
+            <div style={{fontWeight:700,fontSize:16,color:'#0f172a',display:'flex',alignItems:'center',gap:8}}><Icon name="scan"/>Import from Epson ScanSmart</div>
+            <div style={{fontSize:12,color:'#64748b',marginTop:2}}>Invoice &amp; Receipt Manager CSV export</div>
+          </div>
+          <button className="btn-ghost" style={{padding:'4px 8px'}} onClick={onClose}><Icon name="x"/></button>
+        </div>
+        <div className="modal-body">
+          <StepBar steps={['Upload CSV','Map Fields','Preview & Import']} current={step}/>
+
+          {/* Step 0 — upload */}
+          {step===0 && (
+            <div>
+              <div style={{background:'#eff6ff',border:'1px solid #bfdbfe',borderRadius:8,padding:'10px 14px',marginBottom:18,fontSize:12.5,color:'#1e40af'}}>
+                <b>How to export from Epson ScanSmart:</b> Open ScanSmart → Invoice/Receipt Manager → select records → <b>Save/Export → CSV file</b>. Save and upload below.
+              </div>
+              <div className="drop-zone" onClick={()=>fileRef.current.click()}
+                onDragOver={e=>{e.preventDefault();e.currentTarget.classList.add('drag-over');}}
+                onDragLeave={e=>e.currentTarget.classList.remove('drag-over')}
+                onDrop={e=>{e.preventDefault();e.currentTarget.classList.remove('drag-over');handleFile(e.dataTransfer.files[0]);}}>
+                <div style={{fontSize:38,marginBottom:10}}>🖨️</div>
+                <div style={{fontWeight:600,color:'#0f172a',marginBottom:4}}>Drop your Epson ScanSmart CSV here</div>
+                <div style={{color:'#64748b',fontSize:13}}>or click to browse (.csv)</div>
+                <input ref={fileRef} type="file" accept=".csv,.txt" style={{display:'none'}} onChange={e=>handleFile(e.target.files[0])}/>
+              </div>
+            </div>
+          )}
+
+          {/* Step 1 — map */}
+          {step===1 && parsed && (
+            <div>
+              <div style={{fontWeight:600,color:'#0f172a',marginBottom:14,fontSize:14}}>{parsed.rows.length} rows detected · Map your columns</div>
+              {[
+                {label:'📅 Date',          key:'date',          hint:'e.g. "Date", "Receipt Date"'},
+                {label:'🏪 Vendor / Store', key:'vendor',        hint:'e.g. "Store Name", "Vendor", "Merchant"'},
+                {label:'💰 Total Amount',   key:'total',         hint:'e.g. "Total", "Amount", "Grand Total"'},
+                {label:'🧾 Invoice / Receipt #', key:'invoiceNumber', hint:'e.g. "Invoice Number", "Receipt #"'},
+                {label:'💳 Tax Amount',     key:'tax',           hint:'e.g. "Tax", "Sales Tax" (optional)'},
+                {label:'📝 Notes / Memo',   key:'notes',         hint:'e.g. "Memo", "Notes" (optional)'},
+              ].map(({label,key,hint})=>(
+                <div key={key} className="map-row">
+                  <div><div style={{fontWeight:600,fontSize:13}}>{label}</div><div style={{fontSize:11,color:'#94a3b8'}}>{hint}</div></div>
+                  <Icon name="arrow" size={14}/>
+                  <select value={mapping[key]||''} onChange={e=>setMapping(m=>({...m,[key]:e.target.value}))} style={{width:'100%'}}>
+                    <option value="">— not mapped —</option>
+                    {parsed.headers.map(h=><option key={h} value={h}>{h}</option>)}
+                  </select>
+                </div>
+              ))}
+
+              <div className="map-row">
+                <div><div style={{fontWeight:600,fontSize:13}}>📍 Location</div></div>
+                <Icon name="arrow" size={14}/>
+                <div style={{display:'flex',flexDirection:'column',gap:5}}>
+                  <label style={{display:'flex',alignItems:'center',gap:6,fontSize:13}}>
+                    <input type="radio" checked={locMode==='fixed'} onChange={()=>setLocMode('fixed')}/>
+                    Apply to:
+                    <select value={fixedLoc} onChange={e=>setFixedLoc(e.target.value)} style={{marginLeft:4}}>
+                      {LOCATIONS.map(l=><option key={l} value={l}>{l}</option>)}
+                    </select>
+                  </label>
+                  <label style={{display:'flex',alignItems:'center',gap:6,fontSize:13}}>
+                    <input type="radio" checked={locMode==='column'} onChange={()=>setLocMode('column')}/>
+                    From column:
+                    <select value={mapping.location||''} onChange={e=>setMapping(m=>({...m,location:e.target.value}))} disabled={locMode!=='column'} style={{marginLeft:4}}>
+                      <option value="">— select —</option>
+                      {parsed.headers.map(h=><option key={h} value={h}>{h}</option>)}
+                    </select>
+                  </label>
+                </div>
+              </div>
+
+              <div style={{marginTop:14,background:'#f8fafc',borderRadius:8,padding:'10px 14px'}}>
+                <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>Amount to import:</div>
+                <label style={{display:'flex',alignItems:'center',gap:6,fontSize:13,marginBottom:4}}>
+                  <input type="radio" checked={amtMode==='total'} onChange={()=>setAmtMode('total')}/> Full total (including tax)
+                </label>
+                <label style={{display:'flex',alignItems:'center',gap:6,fontSize:13}}>
+                  <input type="radio" checked={amtMode==='total-tax'} onChange={()=>setAmtMode('total-tax')}/> Total minus tax (pre-tax only)
+                </label>
+              </div>
+
+              <div style={{marginTop:14}}>
+                <div style={{fontWeight:600,fontSize:13,marginBottom:6}}>File preview (first 4 rows):</div>
+                <div style={{overflowX:'auto'}}>
+                  <table className="preview-table">
+                    <thead><tr>{parsed.headers.map(h=><th key={h} style={{textAlign:'left',whiteSpace:'nowrap'}}>{h}</th>)}</tr></thead>
+                    <tbody>{parsed.rows.slice(0,4).map((r,i)=><tr key={i}>{parsed.headers.map(h=><td key={h} style={{textAlign:'left',whiteSpace:'nowrap',maxWidth:110,overflow:'hidden',textOverflow:'ellipsis'}}>{r[h]}</td>)}</tr>)}</tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2 — preview */}
+          {step===2 && (
+            <div>
+              <div style={{fontWeight:600,color:'#0f172a',marginBottom:4,fontSize:14}}>{preview.length} expenses ready to import</div>
+              <div style={{color:'#64748b',fontSize:12,marginBottom:14}}>Duplicates will be sent to <b>Dup. Review</b> instead of being imported directly.</div>
+              {preview.length===0
+                ? <div style={{textAlign:'center',padding:30,color:'#94a3b8'}}><div style={{fontSize:32}}>⚠️</div><div style={{marginTop:8}}>No valid rows found. Check your column mappings.</div></div>
+                : <div style={{overflowX:'auto'}}>
+                    <table>
+                      <thead><tr><th style={{textAlign:'left'}}>Date</th><th style={{textAlign:'left'}}>Vendor</th><th style={{textAlign:'left'}}>Invoice #</th><th style={{textAlign:'left'}}>Category</th><th style={{textAlign:'left'}}>Location</th><th>Amount</th><th style={{textAlign:'left'}}>Notes</th></tr></thead>
+                      <tbody>{preview.slice(0,60).map((r,i)=>(
+                        <tr key={i}>
+                          <td style={{textAlign:'left',fontSize:12}}>{r.date}</td>
+                          <td style={{textAlign:'left',fontWeight:500}}>{r.vendor}</td>
+                          <td style={{textAlign:'left',color:'#64748b',fontSize:11}}>{r.invoiceNumber||'—'}</td>
+                          <td style={{textAlign:'left'}}><span className={`badge badge-${(r.category||'other').toLowerCase().replace(/ /g,'-')}`}>{r.category}</span></td>
+                          <td style={{textAlign:'left',fontSize:12}}>{r.location}</td>
+                          <td style={{fontWeight:600,color:'#dc2626'}}>{fmtCur(r.amount)}</td>
+                          <td style={{textAlign:'left',color:'#94a3b8',fontSize:11,maxWidth:120,overflow:'hidden',textOverflow:'ellipsis'}}>{r.notes}</td>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                    {preview.length>60&&<div style={{textAlign:'center',color:'#94a3b8',fontSize:12,padding:'8px 0'}}>…and {preview.length-60} more rows</div>}
+                  </div>
+              }
+            </div>
+          )}
+        </div>
+
+        <div className="modal-footer">
+          {step>0&&step<3&&<button className="btn-ghost" onClick={()=>setStep(s=>s-1)}>← Back</button>}
+          {step===0&&<button className="btn-ghost" onClick={onClose}>Cancel</button>}
+          {step===1&&<button className="btn-primary" onClick={handlePreview} disabled={!mapping.total&&!mapping.vendor}>Preview →</button>}
+          {step===2&&<button className="btn-success" onClick={handleImport} disabled={preview.length===0} style={{display:'flex',alignItems:'center',gap:6}}><Icon name="import"/>Import {preview.length} records</button>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── P&L Calculation ──────────────────────────────────────────────────────────
+function usePL() {
+  const { data, month, location } = useApp();
+  return useMemo(()=>{
+    const locs = location===ALL_LOCS ? LOCATIONS : [location];
+    const rev = data.revenue[month]||{};
+    const exp = data.expenses[month]||[];
+    const pay = data.payroll[month]||{};
+    let foodSales=0, alcSales=0;
+    for(const l of locs){ const r=rev[l]||{}; foodSales+=r.foodSales!==undefined?(+r.foodSales||0):((r.foodDineIn||0)+(r.foodTakeout||0)+(r.foodDelivery||0)+(r.foodOther||0)); alcSales+=r.alcSales!==undefined?(+r.alcSales||0):((r.alcBeer||0)+(r.alcWine||0)+(r.alcLiquor||0)); }
+    const totalSales=foodSales+alcSales;
+    const rentData = data.rent[month]||{};
+    // Build a map: P&L line item → list of real vendor names (from Vendor Map)
+    const plToVendors = {};
+    for(const v of (data.vendors||[])) {
+      if(v.plLine) {
+        const key = v.plLine.toUpperCase();
+        if(!plToVendors[key]) plToVendors[key]=[];
+        plToVendors[key].push((v.name||'').toUpperCase());
+      }
+    }
+    function vendorAmt(plLine){
+      const plUp = plLine.toUpperCase();
+      const mapped = plToVendors[plUp]||[];
+      let base = exp.filter(e=>{
+        if(location!==ALL_LOCS&&e.location!==location) return false;
+        // If expense has an explicit plLine, use that
+        if(e.plLine) return (e.plLine||'').toUpperCase()===plUp;
+        const vUp = (e.vendor||'').toUpperCase();
+        return vUp===plUp || mapped.includes(vUp);
+      }).reduce((s,e)=>s+(+e.amount||0),0);
+      if (plLine==='RENT') { for(const l of locs) base += (+rentData[l]||0); }
+      return base;
+    }
+    let payTotals={}; for(const f of PAYROLL_FIELDS) payTotals[f.key]=0;
+    for(const l of locs){ const p=pay[l]||{}; for(const f of PAYROLL_FIELDS) payTotals[f.key]+=(+p[f.key]||0); }
+    const totalPayroll=Object.entries(payTotals).reduce((a,[k,v])=>a+(k==='tips'?0:v),0);
+    const pll = data.plLines || { Food:FOOD_VENDORS, Alcohol:ALCOHOL_VENDORS, Utilities:UTILITIES, Other:OTHER_EXPENSES, 'Bank Card':BANK_CARD };
+    const foodExp=(pll.Food||[]).map(v=>({vendor:v,amt:vendorAmt(v)}));
+    const alcExp=(pll.Alcohol||[]).map(v=>({vendor:v,amt:vendorAmt(v)}));
+    const utilExp=(pll.Utilities||[]).map(v=>({vendor:v,amt:vendorAmt(v)}));
+    const otherExp=(pll.Other||[]).map(v=>({vendor:v,amt:vendorAmt(v)}));
+    const bankExp=(pll['Bank Card']||[]).map(v=>({vendor:v,amt:vendorAmt(v)}));
+    const totalFood=foodExp.reduce((s,v)=>s+v.amt,0);
+    const totalAlc=alcExp.reduce((s,v)=>s+v.amt,0);
+    const totalUtil=utilExp.reduce((s,v)=>s+v.amt,0);
+    const totalOther=otherExp.reduce((s,v)=>s+v.amt,0);
+    const totalBank=bankExp.reduce((s,v)=>s+v.amt,0);
+    const totalCOGS=totalFood+totalAlc;
+    const totalExpenses=totalCOGS+totalUtil+totalOther+totalBank+totalPayroll;
+    const netIncome=totalSales-totalExpenses;
+    const primeCost=totalCOGS+totalPayroll;
+    return { foodSales,alcSales,totalSales,foodExp,alcExp,utilExp,otherExp,bankExp,totalFood,totalAlc,totalUtil,totalOther,totalBank,totalCOGS,totalPayroll,payTotals,totalExpenses,netIncome,primeCost };
+  },[data,month,location]);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GENIUS POS CSV IMPORT WIZARD
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Step indicator
+function StepBar({ steps, current }) {
+  return (
+    <div className="step-bar">
+      {steps.map((s,i)=>(
+        <div key={i} className={`step${i===current?' active':i<current?' done':''}`}>
+          <div className="step-num">{i<current?'✓':i+1}</div>
+          {s}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Revenue Import Wizard (Genius POS Daily Summary) ─────────────────────────
+function RevenueImportModal({ onClose }) {
+  const { data, setData, month } = useApp();
+  const [step, setStep] = useState(0);
+  const [report, setReport] = useState(null);
+  const [selLoc, setSelLoc] = useState(LOCATIONS[0]);
+  const [selMonth, setSelMonth] = useState(month);
+  const [importDone, setImportDone] = useState(false);
+  const fileRef = useRef();
+
+  function handleFile(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const r = parseGeniusSummary(e.target.result, file.name);
+      if (!r.valid) { alert('This file does not look like a Genius POS Daily Summary.\n\nExpected format: Reports → Daily Summary → Download CSV.\nThe file should contain SALES, GROUPS, and SECTIONS headers.'); return; }
+      setReport(r);
+      if (r.detectedLoc) setSelLoc(r.detectedLoc);
+      if (r.dateRange.month) setSelMonth(r.dateRange.month);
+      setStep(1);
+    };
+    reader.readAsText(file);
+  }
+
+  // Check if existing data for that loc+month
+  const existingRev = useMemo(()=>{
+    if(!report) return null;
+    const r=(data.revenue[selMonth]||{})[selLoc];
+    if(!r) return null;
+    const total=(r.foodDineIn||0)+(r.foodTakeout||0)+(r.foodDelivery||0)+(r.foodOther||0)+(r.alcBeer||0)+(r.alcWine||0)+(r.alcLiquor||0);
+    return total>0?total:null;
+  },[data.revenue,selMonth,selLoc,report]);
+
+  function handleImport() {
+    if (!report) return;
+    setData(prev => {
+      const d = {...prev};
+      const m = selMonth;
+      if (!d.revenue[m]) d.revenue = {...d.revenue, [m]: {}};
+      if (!d.revenue[m][selLoc]) d.revenue[m] = {...d.revenue[m], [selLoc]: {}};
+      const r = {...(d.revenue[m][selLoc]||{})};
+      // Food/Alcohol Sales split left for manual entry
+      // Revenue Summary fields from POS salesRaw
+      if(report.salesRaw) {
+        const raw = report.salesRaw;
+        r.revItems = (r.revItems||0) + (raw['Items']||0);
+        r.revNonRevGross = (r.revNonRevGross||0) + (raw['Non-Revenue Items (Gross)']||0);
+        r.revPositiveAdj = (r.revPositiveAdj||0) + (raw['Positive Adjustments']||0);
+        r.revAutoPricing = (r.revAutoPricing||0) + (raw['Auto Pricing Charges']||0);
+        r.revGrossSales = (r.revGrossSales||0) + (raw['Gross Sales']||0);
+        r.revAutoPricingDisc = (r.revAutoPricingDisc||0) + (raw['Auto Pricing Discounts']||0);
+        r.revDiscounts = (r.revDiscounts||0) + (raw['Discounts']||0);
+        r.revNonRevDisc = (r.revNonRevDisc||0) + (raw['Non-Revenue Discounts']||0);
+        r.revAdjustments = (r.revAdjustments||0) + (raw['Adjustments']||0);
+        r.revNonRevAdj = (r.revNonRevAdj||0) + (raw['Non-Revenue Adjustments']||0);
+        r.revLoyaltyRewards = (r.revLoyaltyRewards||0) + (raw['Loyalty Rewards']||0);
+        r.revNetSales = (r.revNetSales||0) + (raw['Net Sales']||0);
+        r.revNonRevNet = (r.revNonRevNet||0) + (raw['Non-Revenue Items (Net)']||0);
+        r.revTaxes = (r.revTaxes||0) + (raw['Taxes']||0);
+        r.revTaxesIncl = (r.revTaxesIncl||0) + (raw['Taxes (Inclusive)']||0);
+        r.revRoomSurcharges = (r.revRoomSurcharges||0) + (raw['Room Surcharges']||0);
+        r.revServiceCharges = (r.revServiceCharges||0) + (raw['Service Charges']||0);
+        r.revTips = (r.revTips||0) + (raw['Tips']||0);
+        r.revGrossReceipts = (r.revGrossReceipts||0) + (raw['Gross Receipts']||0);
+      }
+      d.revenue[m][selLoc] = r;
+      return d;
+    });
+    setImportDone(true);
+    setStep(2);
+  }
+
+  // ── Done screen ──
+  if (importDone) return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-box" style={{maxWidth:520}} onClick={e=>e.stopPropagation()}>
+        <div className="modal-body" style={{textAlign:'center',padding:'40px 30px'}}>
+          <div style={{fontSize:48,marginBottom:12}}>✅</div>
+          <div style={{fontWeight:700,fontSize:18,color:'#0f172a',marginBottom:8}}>Import Complete!</div>
+          <div style={{color:'#64748b',fontSize:14}}>Sales data for <b>{selLoc}</b> imported into <b>{monthLabel(selMonth)}</b>.</div>
+          <div style={{marginTop:14,display:'flex',justifyContent:'center',gap:20,fontSize:13}}>
+            <div style={{background:'#fffbeb',borderRadius:8,padding:'8px 16px',border:'1px solid #fde68a'}}>
+              <div style={{fontSize:10,color:'#92400e',fontWeight:600}}>FOOD</div>
+              <div style={{fontWeight:700,color:'#78350f',fontSize:16}}>{fmtCur(report.foodNet)}</div>
+            </div>
+            <div style={{background:'#f5f3ff',borderRadius:8,padding:'8px 16px',border:'1px solid #c4b5fd'}}>
+              <div style={{fontSize:10,color:'#5b21b6',fontWeight:600}}>ALCOHOL</div>
+              <div style={{fontWeight:700,color:'#4c1d95',fontSize:16}}>{fmtCur(report.alcNet)}</div>
+            </div>
+          </div>
+          <div style={{marginTop:14,color:'#94a3b8',fontSize:12}}>Values were added to Revenue Entry. You can fine-tune the Dine-In / Takeout split there.</div>
+          <button className="btn-primary" style={{marginTop:20}} onClick={onClose}>Done</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-box" style={{maxWidth:900}} onClick={e=>e.stopPropagation()}>
+        <div className="modal-header">
+          <div>
+            <div style={{fontWeight:700,fontSize:16,color:'#0f172a',display:'flex',alignItems:'center',gap:8}}>
+              Import from Genius POS <span className="genius-tag">Daily Summary</span>
+            </div>
+            <div style={{fontSize:12,color:'#64748b',marginTop:2}}>Upload your Daily Summary CSV export from Genius POS back office</div>
+          </div>
+          <button className="btn-ghost" style={{padding:'4px 8px'}} onClick={onClose}><Icon name="x"/></button>
+        </div>
+
+        <div className="modal-body">
+          <StepBar steps={['Upload File','Review & Import']} current={step}/>
+
+          {/* ── Step 0: Upload ── */}
+          {step===0 && (
+            <div>
+              <div style={{background:'#fefce8',border:'1px solid #fde047',borderRadius:8,padding:'10px 14px',marginBottom:18,display:'flex',gap:10,alignItems:'flex-start'}}>
+                <Icon name="info" size={16}/>
+                <div style={{fontSize:12.5,color:'#713f12'}}>
+                  <b>How to export:</b> Genius POS Back Office → Reports → Daily Summary → Select your date range → Download as CSV.<br/>
+                  The filename should include the location name (e.g. <i>"Los Amigos - Burhans - Daily Summary.csv"</i>) for auto-detection.
+                </div>
+              </div>
+              <div className="drop-zone" onClick={()=>fileRef.current.click()}
+                onDragOver={e=>{e.preventDefault();e.currentTarget.classList.add('drag-over');}}
+                onDragLeave={e=>e.currentTarget.classList.remove('drag-over')}
+                onDrop={e=>{e.preventDefault();e.currentTarget.classList.remove('drag-over');handleFile(e.dataTransfer.files[0]);}}>
+                <div style={{fontSize:36,marginBottom:10}}>📂</div>
+                <div style={{fontWeight:600,color:'#0f172a',marginBottom:4}}>Drop your Genius POS Daily Summary CSV here</div>
+                <div style={{color:'#64748b',fontSize:13}}>or click to browse (.csv)</div>
+                <input ref={fileRef} type="file" accept=".csv,.txt" style={{display:'none'}} onChange={e=>handleFile(e.target.files[0])}/>
+              </div>
+            </div>
+          )}
+
+          {/* ── Step 1: Review & Import ── */}
+          {step===1 && report && (
+            <div>
+              {/* Location & Month selectors */}
+              <div style={{display:'flex',gap:16,marginBottom:18,alignItems:'flex-end'}}>
+                <div>
+                  <label style={{fontSize:11,color:'#64748b',display:'block',marginBottom:3}}>Location</label>
+                  <select value={selLoc} onChange={e=>setSelLoc(e.target.value)} style={{width:180}}>
+                    {LOCATIONS.map(l=><option key={l} value={l}>{l}</option>)}
+                  </select>
+                  {report.detectedLoc && <div style={{fontSize:10,color:'#16a34a',marginTop:2}}>✓ Auto-detected from filename</div>}
+                </div>
+                <div>
+                  <label style={{fontSize:11,color:'#64748b',display:'block',marginBottom:3}}>Import into Month</label>
+                  <input type="month" value={selMonth} onChange={e=>setSelMonth(e.target.value)} style={{width:180}}/>
+                  {report.dateRange.month && <div style={{fontSize:10,color:'#16a34a',marginTop:2}}>✓ Report: {report.dateRange.start} to {report.dateRange.end}</div>}
+                </div>
+              </div>
+
+              {existingRev && (
+                <div style={{background:'#fff7ed',border:'1px solid #fed7aa',borderRadius:8,padding:'9px 14px',marginBottom:14,fontSize:12,color:'#9a3412',display:'flex',gap:8,alignItems:'center'}}>
+                  ⚠️ <b>{selLoc}</b> already has <b>{fmtCur(existingRev)}</b> in revenue for {monthLabel(selMonth)}. This import will <b>add</b> to those values.
+                </div>
+              )}
+
+              {/* Sales Summary bar */}
+              <div style={{background:'#f8fafc',borderRadius:10,padding:16,marginBottom:16,border:'1px solid #e2e8f0'}}>
+                <div style={{fontWeight:700,fontSize:13,color:'#0f172a',marginBottom:12,display:'flex',alignItems:'center',gap:8}}>
+                  <div style={{width:4,height:14,background:'#3b82f6',borderRadius:2}}/>Sales Summary
+                </div>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:12,textAlign:'center'}}>
+                  <div><div style={{fontSize:10,color:'#94a3b8',textTransform:'uppercase'}}>Gross Sales</div><div style={{fontSize:15,fontWeight:700,color:'#0f172a'}}>{fmtCur(report.sales.grossSales)}</div></div>
+                  <div><div style={{fontSize:10,color:'#94a3b8',textTransform:'uppercase'}}>Net Sales</div><div style={{fontSize:15,fontWeight:700,color:'#1d4ed8'}}>{fmtCur(report.sales.netSales)}</div></div>
+                  <div><div style={{fontSize:10,color:'#94a3b8',textTransform:'uppercase'}}>Gross Receipts</div><div style={{fontSize:15,fontWeight:700,color:'#0f172a'}}>{fmtCur(report.sales.grossReceipts)}</div></div>
+                  <div><div style={{fontSize:10,color:'#94a3b8',textTransform:'uppercase'}}>Discounts</div><div style={{fontSize:13,fontWeight:600,color:'#dc2626'}}>-{fmtCur(report.sales.discounts)}</div></div>
+                  <div><div style={{fontSize:10,color:'#94a3b8',textTransform:'uppercase'}}>Taxes</div><div style={{fontSize:13,fontWeight:600,color:'#64748b'}}>{fmtCur(report.sales.taxes)}</div></div>
+                  <div><div style={{fontSize:10,color:'#94a3b8',textTransform:'uppercase'}}>Tips</div><div style={{fontSize:13,fontWeight:600,color:'#64748b'}}>{fmtCur(report.sales.tips)}</div></div>
+                </div>
+              </div>
+
+              {/* Food / Alcohol split */}
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+                <div style={{background:'#fffbeb',borderRadius:10,padding:16,border:'1px solid #fde68a'}}>
+                  <div style={{fontWeight:700,fontSize:13,color:'#92400e',marginBottom:10,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                    <span>🍔 Food Sales</span>
+                    <span style={{fontSize:17,fontWeight:700}}>{fmtCur(report.foodNet)}</span>
+                  </div>
+                  {report.foodGroups.map(g=>(
+                    <div key={g.name} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'3px 0',color:'#78350f'}}>
+                      <span>{g.name}</span><span style={{fontWeight:600}}>{fmtCur(g.net)}</span>
+                    </div>
+                  ))}
+                  <div style={{borderTop:'1px solid #fde68a',marginTop:8,paddingTop:6,fontSize:11,color:'#92400e'}}>
+                    → Imports to: <b>Food → Other / Imported</b>
+                  </div>
+                </div>
+                <div style={{background:'#f5f3ff',borderRadius:10,padding:16,border:'1px solid #c4b5fd'}}>
+                  <div style={{fontWeight:700,fontSize:13,color:'#5b21b6',marginBottom:10,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+                    <span>🍺 Alcohol Sales</span>
+                    <span style={{fontSize:17,fontWeight:700}}>{fmtCur(report.alcNet)}</span>
+                  </div>
+                  {report.alcItems.map(s=>(
+                    <div key={s.name} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'3px 0',color:'#4c1d95'}}>
+                      <span>{s.name}</span><span style={{fontWeight:600}}>{fmtCur(s.net)}</span>
+                    </div>
+                  ))}
+                  <div style={{borderTop:'1px solid #c4b5fd',marginTop:8,paddingTop:6,fontSize:11,color:'#5b21b6'}}>
+                    → Imports to: <b>Alcohol → Liquor / Spirits / Imported</b>
+                  </div>
+                </div>
+              </div>
+
+              {/* Transactions */}
+              <div style={{background:'#f0fdf4',borderRadius:10,padding:16,marginBottom:16,border:'1px solid #86efac'}}>
+                <div style={{fontWeight:700,fontSize:13,color:'#166534',marginBottom:10}}>💳 Transactions</div>
+                <div style={{display:'flex',flexWrap:'wrap',gap:8}}>
+                  {report.transactions.filter(t=>!t.type.toLowerCase().startsWith('total')&&!t.type.startsWith('+')&&!t.type.startsWith('-')).map(t=>(
+                    <div key={t.type} style={{background:'#fff',borderRadius:6,padding:'5px 10px',border:'1px solid #d1fae5',fontSize:12,minWidth:100}}>
+                      <div style={{fontWeight:600,color:'#0f172a',fontSize:11}}>{t.type}</div>
+                      <div style={{color:'#166534',fontWeight:700}}>{fmtCur(t.total)}</div>
+                      <div style={{color:'#94a3b8',fontSize:10}}>{t.count} txns</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Dayparts & Revenue Centers */}
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+                {report.dayparts.length>0 && (
+                  <div style={{background:'#f8fafc',borderRadius:8,padding:12,border:'1px solid #e2e8f0'}}>
+                    <div style={{fontWeight:600,fontSize:12,color:'#475569',marginBottom:8}}>🕐 Dayparts</div>
+                    {report.dayparts.map(d=>(
+                      <div key={d.name} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'2px 0'}}>
+                        <span style={{color:'#374151'}}>{d.name} ({d.qty})</span><span style={{fontWeight:600}}>{fmtCur(d.net)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {report.revCenters.length>0 && (
+                  <div style={{background:'#f8fafc',borderRadius:8,padding:12,border:'1px solid #e2e8f0'}}>
+                    <div style={{fontWeight:600,fontSize:12,color:'#475569',marginBottom:8}}>🏪 Revenue Centers</div>
+                    {report.revCenters.map(r=>(
+                      <div key={r.name} style={{display:'flex',justifyContent:'space-between',fontSize:12,padding:'2px 0'}}>
+                        <span style={{color:'#374151'}}>{r.name} ({r.qty})</span><span style={{fontWeight:600}}>{fmtCur(r.net)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="modal-footer">
+          {step===0&&<button className="btn-ghost" onClick={onClose}>Cancel</button>}
+          {step===1&&<>
+            <button className="btn-ghost" onClick={()=>{setStep(0);setReport(null);}}>← Upload Different File</button>
+            <button className="btn-success" onClick={handleImport} style={{display:'flex',alignItems:'center',gap:6}}>
+              <Icon name="import"/>Import to {selLoc} — {monthLabel(selMonth)}
+            </button>
+          </>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Expense Import Wizard ─────────────────────────────────────────────────────
+function ExpenseImportModal({ onClose }) {
+  const { data, setData, month, location } = useApp();
+  const [step, setStep] = useState(0);
+  const [parsed, setParsed] = useState(null);
+  const [mapping, setMapping] = useState({});
+  const [locMode, setLocMode] = useState('fixed');
+  const [fixedLoc, setFixedLoc] = useState(location===ALL_LOCS?LOCATIONS[0]:location);
+  const [fixedCat, setFixedCat] = useState('Food');
+  const [catMode, setCatMode] = useState('auto'); // 'auto' (from vendor map) | 'fixed' | 'column'
+  const [preview, setPreview] = useState([]);
+  const [done, setDone] = useState(false);
+  const fileRef = useRef();
+
+  function handleFile(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const result = parseCSV(e.target.result);
+      setParsed(result);
+      const det = autoDetect(result.headers);
+      setMapping(det);
+      setStep(1);
+    };
+    reader.readAsText(file);
+  }
+
+  function lookupCategory(vendorName, vendorMap) {
+    const up = (vendorName||'').toUpperCase();
+    const match = vendorMap.find(v=>(v.name||'').toUpperCase()===up);
+    return match ? match.category : 'Other';
+  }
+
+  function buildPreview() {
+    if (!parsed) return [];
+    const { rows } = parsed;
+    const amtCol = mapping.netSales || mapping.grossSales;
+    const vendorCol = mapping.vendor || mapping.description;
+    const dateCol = mapping.date;
+    const locCol = locMode==='column' ? mapping.location : null;
+    const catCol = catMode==='column' ? mapping.category : null;
+
+    const result = [];
+    for (const row of rows) {
+      const rawAmt = (row[amtCol]||'').replace(/[$,]/g,'');
+      const amt = parseFloat(rawAmt)||0;
+      if (amt===0) continue;
+      const vendor = (row[vendorCol]||'').toUpperCase().trim();
+      if (!vendor) continue;
+      const date = row[dateCol]||month+'-01';
+      const loc = locMode==='column' ? (row[locCol]||fixedLoc) : fixedLoc;
+      let cat = fixedCat;
+      if (catMode==='auto') cat = lookupCategory(vendor, data.vendors||[]);
+      else if (catMode==='column') cat = row[catCol]||fixedCat;
+      const subCatVendor = (data.vendors||[]).find(v=>(v.name||'').toUpperCase()===vendor.toUpperCase());
+      const mappedVendor = FOOD_VENDORS.includes(vendor)||ALCOHOL_VENDORS.includes(vendor)||UTILITIES.includes(vendor)||OTHER_EXPENSES.includes(vendor)||BANK_CARD.includes(vendor) ? vendor : vendor;
+      result.push({ id:uid(), date, location:loc, vendor:mappedVendor, amount:amt, category:cat, subCategory:subCatVendor?.subCategory||'', notes:'' });
+    }
+    return result;
+  }
+
+  function handlePreview() { setPreview(buildPreview()); setStep(2); }
+
+  function handleImport() {
+    setData(prev=>{
+      const d={...prev};
+      if (!d.expenses[month]) d.expenses={...d.expenses,[month]:[]};
+      d.expenses[month]=[...preview,...d.expenses[month]];
+      return d;
+    });
+    setDone(true); setStep(3);
+  }
+
+  const catBadge = { Food:'badge-food',Alcohol:'badge-alcohol',Utilities:'badge-utilities',Other:'badge-other','Bank Card':'badge-bank' };
+
+  if (done) return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-box" style={{maxWidth:480}} onClick={e=>e.stopPropagation()}>
+        <div className="modal-body" style={{textAlign:'center',padding:'40px 30px'}}>
+          <div style={{fontSize:48,marginBottom:12}}>✅</div>
+          <div style={{fontWeight:700,fontSize:18,color:'#0f172a',marginBottom:8}}>Import Complete!</div>
+          <div style={{color:'#64748b',fontSize:14}}>{preview.length} expense entr{preview.length===1?'y':'ies'} imported for <b>{monthLabel(month)}</b>.</div>
+          <button className="btn-primary" style={{marginTop:20}} onClick={onClose}>Done</button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-box" onClick={e=>e.stopPropagation()}>
+        <div className="modal-header">
+          <div>
+            <div style={{fontWeight:700,fontSize:16,color:'#0f172a'}}>Import Expenses / IR Data</div>
+            <div style={{fontSize:12,color:'#64748b',marginTop:2}}>Upload a CSV export from Genius POS, QuickBooks, or your accounting system</div>
+          </div>
+          <button className="btn-ghost" style={{padding:'4px 8px'}} onClick={onClose}><Icon name="x"/></button>
+        </div>
+
+        <div className="modal-body">
+          <StepBar steps={['Upload File','Map Columns','Preview & Import']} current={step}/>
+
+          {step===0 && (
+            <div>
+              <div style={{background:'#fefce8',border:'1px solid #fde047',borderRadius:8,padding:'10px 14px',marginBottom:18,display:'flex',gap:10}}>
+                <Icon name="info" size={16}/>
+                <div style={{fontSize:12.5,color:'#713f12'}}>
+                  <b>Supported sources:</b> Genius POS → Purchase Reports or Vendor Payments; QuickBooks → Expense Report (CSV); Any vendor invoice export with Date, Vendor, and Amount columns.
+                </div>
+              </div>
+              <div className="drop-zone" onClick={()=>fileRef.current.click()}
+                onDragOver={e=>{e.preventDefault();e.currentTarget.classList.add('drag-over');}}
+                onDragLeave={e=>e.currentTarget.classList.remove('drag-over')}
+                onDrop={e=>{e.preventDefault();e.currentTarget.classList.remove('drag-over');handleFile(e.dataTransfer.files[0]);}}>
+                <div style={{fontSize:36,marginBottom:10}}>📂</div>
+                <div style={{fontWeight:600,color:'#0f172a',marginBottom:4}}>Drop your expense CSV here</div>
+                <div style={{color:'#64748b',fontSize:13}}>or click to browse files (.csv)</div>
+                <input ref={fileRef} type="file" accept=".csv,.txt" style={{display:'none'}} onChange={e=>handleFile(e.target.files[0])}/>
+              </div>
+            </div>
+          )}
+
+          {step===1 && parsed && (
+            <div>
+              <div style={{fontWeight:600,color:'#0f172a',marginBottom:14,fontSize:14}}>
+                Detected {parsed.headers.length} columns, {parsed.rows.length} rows
+              </div>
+              {[
+                {label:'📅 Date Column',key:'date',hint:'Transaction or invoice date'},
+                {label:'🏢 Vendor / Payee',key:'vendor',hint:'Supplier name — e.g. "Payee", "Vendor", "Supplier"'},
+                {label:'💰 Amount Column',key:'netSales',hint:'Invoice or payment amount'},
+              ].map(({label,key,hint})=>(
+                <div key={key} className="map-row">
+                  <div><div style={{fontWeight:600,fontSize:13}}>{label}</div><div style={{fontSize:11,color:'#94a3b8'}}>{hint}</div></div>
+                  <Icon name="arrow" size={14}/>
+                  <select value={mapping[key]||''} onChange={e=>setMapping(m=>({...m,[key]:e.target.value}))} style={{width:'100%'}}>
+                    <option value="">— not mapped —</option>
+                    {parsed.headers.map(h=><option key={h} value={h}>{h}</option>)}
+                  </select>
+                </div>
+              ))}
+
+              <div className="map-row">
+                <div><div style={{fontWeight:600,fontSize:13}}>📍 Location</div></div>
+                <Icon name="arrow" size={14}/>
+                <div style={{display:'flex',flexDirection:'column',gap:5}}>
+                  <label style={{display:'flex',alignItems:'center',gap:6,fontSize:13}}>
+                    <input type="radio" checked={locMode==='fixed'} onChange={()=>setLocMode('fixed')}/>
+                    Use:
+                    <select value={fixedLoc} onChange={e=>setFixedLoc(e.target.value)}>
+                      {LOCATIONS.map(l=><option key={l} value={l}>{l}</option>)}
+                    </select>
+                  </label>
+                  <label style={{display:'flex',alignItems:'center',gap:6,fontSize:13}}>
+                    <input type="radio" checked={locMode==='column'} onChange={()=>setLocMode('column')}/>
+                    From column:
+                    <select value={mapping.location||''} onChange={e=>setMapping(m=>({...m,location:e.target.value}))} disabled={locMode!=='column'}>
+                      <option value="">— select —</option>
+                      {parsed.headers.map(h=><option key={h} value={h}>{h}</option>)}
+                    </select>
+                  </label>
+                </div>
+              </div>
+
+              <div className="map-row">
+                <div><div style={{fontWeight:600,fontSize:13}}>🏷️ Category</div><div style={{fontSize:11,color:'#94a3b8'}}>How to assign Food/Alcohol/etc.</div></div>
+                <Icon name="arrow" size={14}/>
+                <div style={{display:'flex',flexDirection:'column',gap:5}}>
+                  <label style={{display:'flex',alignItems:'center',gap:6,fontSize:13}}>
+                    <input type="radio" checked={catMode==='auto'} onChange={()=>setCatMode('auto')}/>
+                    Auto-detect from Vendor Map
+                  </label>
+                  <label style={{display:'flex',alignItems:'center',gap:6,fontSize:13}}>
+                    <input type="radio" checked={catMode==='fixed'} onChange={()=>setCatMode('fixed')}/>
+                    Set all to:
+                    <select value={fixedCat} onChange={e=>setFixedCat(e.target.value)} disabled={catMode!=='fixed'}>
+                      {CATEGORIES.map(c=><option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </label>
+                  <label style={{display:'flex',alignItems:'center',gap:6,fontSize:13}}>
+                    <input type="radio" checked={catMode==='column'} onChange={()=>setCatMode('column')}/>
+                    From column:
+                    <select value={mapping.category||''} onChange={e=>setMapping(m=>({...m,category:e.target.value}))} disabled={catMode!=='column'}>
+                      <option value="">— select —</option>
+                      {parsed.headers.map(h=><option key={h} value={h}>{h}</option>)}
+                    </select>
+                  </label>
+                </div>
+              </div>
+
+              <div style={{marginTop:16}}>
+                <div style={{fontWeight:600,fontSize:13,color:'#0f172a',marginBottom:8}}>File preview (first 5 rows):</div>
+                <div style={{overflowX:'auto'}}>
+                  <table className="preview-table">
+                    <thead><tr>{parsed.headers.map(h=><th key={h} style={{textAlign:'left',whiteSpace:'nowrap'}}>{h}</th>)}</tr></thead>
+                    <tbody>{parsed.rows.slice(0,5).map((r,i)=><tr key={i}>{parsed.headers.map(h=><td key={h} style={{textAlign:'left',whiteSpace:'nowrap',maxWidth:120,overflow:'hidden',textOverflow:'ellipsis'}}>{r[h]}</td>)}</tr>)}</tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step===2 && (
+            <div>
+              <div style={{fontWeight:600,color:'#0f172a',marginBottom:4,fontSize:14}}>Preview — {preview.length} expenses to import into {monthLabel(month)}</div>
+              {preview.length===0 ? (
+                <div style={{textAlign:'center',padding:'30px',color:'#94a3b8'}}>
+                  <div style={{fontSize:32}}>⚠️</div>
+                  <div style={{fontWeight:600,color:'#374151',marginTop:8}}>No rows matched. Go back and check your column mappings.</div>
+                </div>
+              ) : (
+                <div style={{overflowX:'auto'}}>
+                  <table>
+                    <thead><tr><th style={{textAlign:'left'}}>Date</th><th style={{textAlign:'left'}}>Location</th><th style={{textAlign:'left'}}>Category</th><th style={{textAlign:'left'}}>Vendor</th><th>Amount</th></tr></thead>
+                    <tbody>
+                      {preview.slice(0,50).map((r,i)=>(
+                        <tr key={i}>
+                          <td style={{textAlign:'left',fontSize:12}}>{r.date}</td>
+                          <td style={{textAlign:'left',fontSize:12}}>{r.location}</td>
+                          <td style={{textAlign:'left'}}><span className={`badge ${catBadge[r.category]||'badge-other'}`}>{r.category}</span></td>
+                          <td style={{textAlign:'left',fontWeight:500,fontSize:12}}>{r.vendor}</td>
+                          <td style={{fontWeight:600,color:'#dc2626'}}>{fmtCur(r.amount)}</td>
+                        </tr>
+                      ))}
+                      {preview.length>50&&<tr><td colSpan={5} style={{textAlign:'center',color:'#94a3b8',fontSize:12}}>...and {preview.length-50} more rows</td></tr>}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="modal-footer">
+          {step>0&&step<3&&<button className="btn-ghost" onClick={()=>setStep(s=>s-1)}>← Back</button>}
+          {step===0&&<button className="btn-ghost" onClick={onClose}>Cancel</button>}
+          {step===1&&<button className="btn-primary" onClick={handlePreview} disabled={!mapping.netSales&&!mapping.grossSales&&!mapping.vendor}>Preview Import →</button>}
+          {step===2&&<button className="btn-success" onClick={handleImport} disabled={preview.length===0} style={{display:'flex',alignItems:'center',gap:6}}><Icon name="import"/>Import {preview.length} rows</button>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAIN VIEWS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function Dashboard() {
+  const pl = usePL();
+  const metrics = [
+    {label:'Total Gross Sales',value:fmtCur(pl.totalSales),color:'#1d4ed8',sub:`Food ${fmtCur(pl.foodSales)} · Alcohol ${fmtCur(pl.alcSales)}`},
+    {label:'Total Food Cost',value:fmtCur(pl.totalFood),color:'#d97706',sub:fmtPct(pl.totalFood,pl.foodSales)+' of food sales'},
+    {label:'Total Alcohol Cost',value:fmtCur(pl.totalAlc),color:'#7c3aed',sub:fmtPct(pl.totalAlc,pl.alcSales)+' of alcohol sales'},
+    {label:'Total Payroll',value:fmtCur(pl.totalPayroll),color:'#0891b2',sub:fmtPct(pl.totalPayroll,pl.totalSales)+' of sales'},
+    {label:'Prime Cost',value:fmtCur(pl.primeCost),color:'#dc2626',sub:fmtPct(pl.primeCost,pl.totalSales)+' of sales'},
+    {label:'Net Income',value:fmtCur(pl.netIncome),color:pl.netIncome>=0?'#16a34a':'#dc2626',sub:fmtPct(pl.netIncome,pl.totalSales)+' net margin'},
+  ];
+  const bars = [
+    {label:'Food Cost',val:pl.totalFood,color:'#f59e0b'},
+    {label:'Alcohol Cost',val:pl.totalAlc,color:'#8b5cf6'},
+    {label:'Utilities',val:pl.totalUtil,color:'#06b6d4'},
+    {label:'Payroll',val:pl.totalPayroll,color:'#3b82f6'},
+    {label:'Other / Bank',val:pl.totalOther+pl.totalBank,color:'#6366f1'},
+  ];
+  return (
+    <div>
+      <Header title="Dashboard" subtitle="Monthly performance overview"/>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:14,marginBottom:24}}>
+        {metrics.map(m=>(
+          <div key={m.label} className="metric-card" style={{borderColor:m.color}}>
+            <div style={{fontSize:11,color:'#64748b',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:6}}>{m.label}</div>
+            <div style={{fontSize:22,fontWeight:700,color:m.color}}>{m.value}</div>
+            <div style={{fontSize:11,color:'#94a3b8',marginTop:4}}>{m.sub}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16}}>
+        <div className="card">
+          <div style={{fontWeight:700,color:'#0f172a',marginBottom:16,fontSize:14}}>Expense Breakdown</div>
+          {bars.map(b=>{ const pct=pl.totalSales>0?(b.val/pl.totalSales)*100:0; return (
+            <div key={b.label} style={{marginBottom:12}}>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                <span style={{fontSize:12,color:'#374151'}}>{b.label}</span>
+                <span style={{fontSize:12,fontWeight:600,color:'#1e293b'}}>{fmtCur(b.val)} <span style={{color:'#94a3b8',fontWeight:400}}>({pct.toFixed(1)}%)</span></span>
+              </div>
+              <div style={{background:'#f1f5f9',borderRadius:4,height:8}}>
+                <div style={{background:b.color,width:`${Math.min(pct,100)}%`,height:8,borderRadius:4}}/>
+              </div>
+            </div>
+          );})}
+        </div>
+        <div className="card">
+          <div style={{fontWeight:700,color:'#0f172a',marginBottom:16,fontSize:14}}>P&L Summary</div>
+          <table style={{fontSize:13}}>
+            <tbody>
+              <tr><td style={{color:'#374151',paddingLeft:0}}>Gross Sales</td><td style={{fontWeight:600}}>{fmtCur(pl.totalSales)}</td></tr>
+              <tr><td style={{color:'#374151',paddingLeft:0}}>Cost of Goods Sold</td><td style={{color:'#dc2626'}}>({fmtCur(pl.totalCOGS)})</td></tr>
+              <tr><td style={{color:'#374151',paddingLeft:0}}>Gross Profit</td><td style={{fontWeight:600,color:'#16a34a'}}>{fmtCur(pl.totalSales-pl.totalCOGS)}</td></tr>
+              <tr><td colSpan={2}><div style={{height:1,background:'#e2e8f0',margin:'8px 0'}}/></td></tr>
+              <tr><td style={{color:'#374151',paddingLeft:0}}>Payroll</td><td style={{color:'#dc2626'}}>({fmtCur(pl.totalPayroll)})</td></tr>
+              <tr><td style={{color:'#374151',paddingLeft:0}}>Utilities</td><td style={{color:'#dc2626'}}>({fmtCur(pl.totalUtil)})</td></tr>
+              <tr><td style={{color:'#374151',paddingLeft:0}}>Other / Bank</td><td style={{color:'#dc2626'}}>({fmtCur(pl.totalOther+pl.totalBank)})</td></tr>
+              <tr><td colSpan={2}><div style={{height:1,background:'#e2e8f0',margin:'8px 0'}}/></td></tr>
+              <tr><td style={{fontWeight:700,color:'#0f172a',paddingLeft:0,fontSize:15}}>Net Income</td><td style={{fontWeight:700,fontSize:15,color:pl.netIncome>=0?'#16a34a':'#dc2626'}}>{fmtCur(pl.netIncome)}</td></tr>
+              <tr><td style={{color:'#64748b',fontSize:11,paddingLeft:0}}>Net Margin</td><td style={{color:'#64748b',fontSize:11}}>{fmtPct(pl.netIncome,pl.totalSales)}</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PLReport() {
+  const { month, location, data:appData } = useApp();
+  const pl = usePL();
+  const rev = appData.revenue[month]||{};
+  const exp = appData.expenses[month]||[];
+  const pay = appData.payroll[month]||{};
+  const colHeaders = location===ALL_LOCS ? [...LOCATIONS,'All Locations'] : [location];
+
+  function locSales(loc,type) { const r=rev[loc]||{}; if(type==='food') return r.foodSales!==undefined?(+r.foodSales||0):((r.foodDineIn||0)+(r.foodTakeout||0)+(r.foodDelivery||0)+(r.foodOther||0)); return r.alcSales!==undefined?(+r.alcSales||0):((r.alcBeer||0)+(r.alcWine||0)+(r.alcLiquor||0)); }
+  const rentData = appData.rent[month]||{};
+  // Build map: P&L line item → real vendor names (from Vendor Map)
+  const plToVendorsLoc = useMemo(()=>{
+    const m={};
+    for(const v of (appData.vendors||[])) {
+      if(v.plLine) {
+        const key=v.plLine.toUpperCase();
+        if(!m[key]) m[key]=[];
+        m[key].push((v.name||'').toUpperCase());
+      }
+    }
+    return m;
+  },[appData.vendors]);
+  function locVendorAmt(loc,plLine) {
+    const plUp = plLine.toUpperCase();
+    const mapped = plToVendorsLoc[plUp]||[];
+    let base = exp.filter(e=>{
+      if(e.location!==loc) return false;
+      if(e.plLine) return (e.plLine||'').toUpperCase()===plUp;
+      const vUp=(e.vendor||'').toUpperCase();
+      return vUp===plUp || mapped.includes(vUp);
+    }).reduce((s,e)=>s+(+e.amount||0),0);
+    if (plLine==='RENT') base += (+rentData[loc]||0);
+    return base;
+  }
+  function locPayroll(loc) { const p=pay[loc]||{}; return PAYROLL_FIELDS.reduce((s,f)=>s+(f.key==='tips'?0:(+p[f.key]||0)),0); }
+
+  function exportCSV() {
+    const rows=[['Category','Item',...colHeaders,'% of Sales']];
+    rows.push(['GROSS SALES','Food',...(location===ALL_LOCS?[...LOCATIONS.map(l=>locSales(l,'food')),pl.foodSales]:[locSales(location,'food')]),'-']);
+    rows.push(['GROSS SALES','Alcohol',...(location===ALL_LOCS?[...LOCATIONS.map(l=>locSales(l,'alc')),pl.alcSales]:[locSales(location,'alc')]),'-']);
+    const csv=rows.map(r=>r.map(c=>`"${c}"`).join(',')).join('\n');
+    const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv); a.download=`PL_${month}_${location.replace(/ /g,'_')}.csv`; a.click();
+  }
+
+  function SectionRow({label}) { return <tr className="section-header"><td colSpan={colHeaders.length+2}>{label}</td></tr>; }
+
+  function VendorRow({vendor}) {
+    const locAmts=LOCATIONS.map(l=>locVendorAmt(l,vendor));
+    const total=locAmts.reduce((a,b)=>a+b,0);
+    const cols=location===ALL_LOCS?[...locAmts,total]:[locVendorAmt(location,vendor)];
+    const showVal=cols[cols.length-1];
+    return <tr><td style={{paddingLeft:24,color:'#374151'}}>{vendor}</td>{cols.map((v,i)=><td key={i}>{v>0?fmtCur(v):'-'}</td>)}<td style={{color:'#94a3b8'}}>{showVal>0?fmtPct(showVal,pl.totalSales):'-'}</td></tr>;
+  }
+
+  function SubtotalRow({label,items,foodDen,alcDen}) {
+    const locTotals=LOCATIONS.map(l=>items.reduce((s,v)=>s+locVendorAmt(l,v.vendor),0));
+    const allTotal=locTotals.reduce((a,b)=>a+b,0);
+    const cols=location===ALL_LOCS?[...locTotals,allTotal]:[items.reduce((s,v)=>s+locVendorAmt(location,v.vendor),0)];
+    const showVal=cols[cols.length-1];
+    const den=foodDen?pl.foodSales:alcDen?pl.alcSales:pl.totalSales;
+    return <tr className="subtotal-row"><td><b>{label}</b></td>{cols.map((v,i)=><td key={i}><b>{fmtCur(v)}</b></td>)}<td><b>{fmtPct(showVal,den)}</b></td></tr>;
+  }
+
+  function TotalSalesRow() {
+    const locVals=LOCATIONS.map(l=>locSales(l,'food')+locSales(l,'alc'));
+    const total=locVals.reduce((a,b)=>a+b,0);
+    const cols=location===ALL_LOCS?[...locVals,total]:[locSales(location,'food')+locSales(location,'alc')];
+    return <tr className="total-row"><td>TOTAL GROSS SALES</td>{cols.map((v,i)=><td key={i}>{fmtCur(v)}</td>)}<td>100.0%</td></tr>;
+  }
+
+  // Payroll helpers — condensed to match Excel: PAYROLL 1, TIPS, LOANS
+  const wageKeys = ['regular','salary','bonus','ss','med','fees'];
+  function locPayroll1(loc) { const p=pay[loc]||{}; return wageKeys.reduce((s,k)=>s+(+p[k]||0),0); }
+  function locTips(loc) { return(+(pay[loc]||{}).tips||0); }
+  function locLoans(loc) { return(+(pay[loc]||{}).loans||0); }
+  function locPayrollExpTotal(loc) { return locPayroll1(loc)+locTips(loc)+locLoans(loc); }
+
+  function PayrollCondensedRow({label,calcFn}) {
+    const locVals=LOCATIONS.map(l=>calcFn(l));
+    const total=locVals.reduce((a,b)=>a+b,0);
+    const cols=location===ALL_LOCS?[...locVals,total]:[calcFn(location)];
+    const showVal=cols[cols.length-1];
+    return <tr><td style={{paddingLeft:24,color:'#374151'}}>{label}</td>{cols.map((v,i)=><td key={i}>{v>0?fmtCur(v):'-'}</td>)}<td style={{color:'#94a3b8'}}>{fmtPct(showVal,pl.totalSales)}</td></tr>;
+  }
+
+  function PayrollSubtotalRow({label,calcFn}) {
+    const locVals=LOCATIONS.map(l=>calcFn(l));
+    const total=locVals.reduce((a,b)=>a+b,0);
+    const cols=location===ALL_LOCS?[...locVals,total]:[calcFn(location)];
+    const showVal=cols[cols.length-1];
+    return <tr className="subtotal-row"><td><b>{label}</b></td>{cols.map((v,i)=><td key={i}><b>{fmtCur(v)}</b></td>)}<td><b>{fmtPct(showVal,pl.totalSales)}</b></td></tr>;
+  }
+
+  // Bottom summary rows
+  function TotalExpensesRow() {
+    const pll=appData.plLines||{Food:FOOD_VENDORS,Alcohol:ALCOHOL_VENDORS,Utilities:UTILITIES,Other:OTHER_EXPENSES,'Bank Card':BANK_CARD};
+    const allV=[...(pll.Food||[]),...(pll.Alcohol||[]),...(pll.Utilities||[]),...(pll.Other||[]),...(pll['Bank Card']||[])];
+    const locVals=LOCATIONS.map(l=>allV.reduce((sum,v)=>sum+locVendorAmt(l,v),0)+locPayroll(l));
+    const total=locVals.reduce((a,b)=>a+b,0);
+    const cols=location===ALL_LOCS?[...locVals,total]:[locVals[LOCATIONS.indexOf(location)]||0];
+    return <tr className="total-row"><td>TOTAL EXPENSES</td>{cols.map((v,i)=><td key={i}>{fmtCur(v)}</td>)}<td>{fmtPct(cols[cols.length-1],pl.totalSales)}</td></tr>;
+  }
+
+  function TotalSalesForRow() {
+    const locVals=LOCATIONS.map(l=>locSales(l,'food')+locSales(l,'alc'));
+    const total=locVals.reduce((a,b)=>a+b,0);
+    const cols=location===ALL_LOCS?[...locVals,total]:[locSales(location,'food')+locSales(location,'alc')];
+    return <tr className="total-row"><td>TOTAL SALES</td>{cols.map((v,i)=><td key={i}>{fmtCur(v)}</td>)}<td>100.0%</td></tr>;
+  }
+
+  function ProfitRow() {
+    const pll=appData.plLines||{Food:FOOD_VENDORS,Alcohol:ALCOHOL_VENDORS,Utilities:UTILITIES,Other:OTHER_EXPENSES,'Bank Card':BANK_CARD};
+    const allV=[...(pll.Food||[]),...(pll.Alcohol||[]),...(pll.Utilities||[]),...(pll.Other||[]),...(pll['Bank Card']||[])];
+    const locVals=LOCATIONS.map(l=>{ const s=locSales(l,'food')+locSales(l,'alc'); const e=allV.reduce((sum,v)=>sum+locVendorAmt(l,v),0); return s-e-locPayroll(l); });
+    const total=locVals.reduce((a,b)=>a+b,0);
+    const cols=location===ALL_LOCS?[...locVals,total]:[locVals[LOCATIONS.indexOf(location)]||0];
+    const showVal=cols[cols.length-1];
+    return <tr className="net-row"><td>PROFIT</td>{cols.map((v,i)=><td key={i} style={{color:v>=0?'#6ee7b7':'#fca5a5'}}>{v>=0?fmtCur(v):'('+fmtCur(v)+')'}</td>)}<td style={{color:showVal>=0?'#6ee7b7':'#fca5a5'}}>{fmtPct(showVal,pl.totalSales)}</td></tr>;
+  }
+
+  return (
+    <div>
+      <Header title="P&L Report" subtitle={`${monthLabel(month)} · ${location}`}>
+        <button className="btn-ghost" onClick={exportCSV} style={{display:'flex',alignItems:'center',gap:5}}><Icon name="export"/>Export CSV</button>
+      </Header>
+      <div className="card" style={{padding:0,overflow:'auto'}}>
+        <table>
+          <thead><tr><th style={{width:220,textAlign:'left'}}>Category</th>{colHeaders.map(c=><th key={c}>{c}</th>)}<th>% of Sales</th></tr></thead>
+          <tbody>
+            <SectionRow label="FOOD"/>
+            {pl.foodExp.map(v=><VendorRow key={v.vendor} vendor={v.vendor}/>)}
+            <SubtotalRow label="FOOD TOTAL" items={pl.foodExp} foodDen/>
+            <SectionRow label="ALCOHOL"/>
+            {pl.alcExp.map(v=><VendorRow key={v.vendor} vendor={v.vendor}/>)}
+            <SubtotalRow label="ALCOHOL TOTAL" items={pl.alcExp} alcDen/>
+            <SectionRow label="UTILITY BILLS"/>
+            {pl.utilExp.map(v=><VendorRow key={v.vendor} vendor={v.vendor}/>)}
+            <SubtotalRow label="UTILITIES TOTAL" items={pl.utilExp}/>
+            <SectionRow label="OTHER"/>
+            {pl.otherExp.map(v=><VendorRow key={v.vendor} vendor={v.vendor}/>)}
+            <SubtotalRow label="OTHER TOTAL" items={pl.otherExp}/>
+            <SectionRow label="PAYROLL"/>
+            <PayrollCondensedRow label="PAYROLL 1 (Wages+Employer+Fees)" calcFn={locPayroll1}/>
+            <PayrollCondensedRow label="Paid Tips (Credit Card)" calcFn={locTips}/>
+            <PayrollCondensedRow label="Loans / Advances" calcFn={locLoans}/>
+            <PayrollSubtotalRow label="PAYROLL EXPENSE TOTAL" calcFn={locPayroll}/>
+            <PayrollSubtotalRow label="PAYROLL TOTAL (incl)" calcFn={locPayrollExpTotal}/>
+            <SectionRow label="BANK CARD"/>
+            {pl.bankExp.map(v=><VendorRow key={v.vendor} vendor={v.vendor}/>)}
+            <SubtotalRow label="BANK CARD TOTAL" items={pl.bankExp}/>
+            <TotalExpensesRow/>
+            <TotalSalesForRow/>
+            <ProfitRow/>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function RevenueEntry() {
+  const { data, setData, month, location } = useApp();
+  const [showImport, setShowImport] = useState(false);
+  const locs = location===ALL_LOCS ? LOCATIONS : [location];
+  function getVal(loc,field) { return(((data.revenue[month]||{})[loc])||{})[field]||''; }
+  function setVal(loc,field,val) {
+    setData(prev=>{
+      const d={...prev};
+      if(!d.revenue[month]) d.revenue={...d.revenue,[month]:{}};
+      if(!d.revenue[month][loc]) d.revenue[month]={...d.revenue[month],[loc]:{}};
+      d.revenue[month][loc]={...d.revenue[month][loc],[field]:+val||0};
+      return d;
+    });
+  }
+
+  return (
+    <div>
+      {showImport && <RevenueImportModal onClose={()=>setShowImport(false)}/>}
+      <Header title="Revenue Entry" subtitle="Enter monthly totals from POS export">
+        <button className="btn-amber" onClick={()=>setShowImport(true)} style={{display:'flex',alignItems:'center',gap:6}}>
+          <Icon name="import"/>Import from Genius POS
+        </button>
+      </Header>
+      <div style={{background:'#fefce8',border:'1px solid #fde047',borderRadius:8,padding:'9px 14px',marginBottom:16,display:'flex',gap:10,alignItems:'center',fontSize:12.5,color:'#713f12'}}>
+        <Icon name="info" size={14}/>
+        <span>Enter monthly totals from your POS Revenue Summary. <b>Food Sales</b> and <b>Alcohol Sales</b> are entered separately below and flow to the P&L.</span>
+      </div>
+
+      {/* ── Food & Alcohol Sales (P&L inputs) ── */}
+      <div className="card" style={{marginBottom:16}}>
+        <div style={{fontWeight:700,color:'#0f172a',fontSize:14,marginBottom:14,display:'flex',alignItems:'center',gap:8}}>
+          <div style={{width:4,height:16,background:'#16a34a',borderRadius:2}}/>
+          Sales Split
+          <span style={{fontSize:11,color:'#94a3b8',fontWeight:400}}>— these values flow to the P&L Gross Sales</span>
+        </div>
+        <table>
+          <thead><tr><th style={{textAlign:'left',width:200}}>Sales Category</th>{locs.map(l=><th key={l}>{l}</th>)}{locs.length>1&&<th>Total</th>}</tr></thead>
+          <tbody>
+            <tr>
+              <td style={{fontWeight:600,color:'#d97706'}}>Food Sales</td>
+              {locs.map(l=>(
+                <td key={l}><div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',gap:3}}><span style={{color:'#94a3b8'}}>$</span><input type="number" min="0" step="0.01" value={getVal(l,'foodSales')||''} onChange={e=>setVal(l,'foodSales',e.target.value)} style={{width:120,textAlign:'right'}} placeholder="0.00"/></div></td>
+              ))}
+              {locs.length>1&&<td style={{fontWeight:600,color:'#d97706'}}>{fmtCur(locs.reduce((s,l)=>s+(+getVal(l,'foodSales')||0),0))}</td>}
+            </tr>
+            <tr>
+              <td style={{fontWeight:600,color:'#7c3aed'}}>Alcohol Sales</td>
+              {locs.map(l=>(
+                <td key={l}><div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',gap:3}}><span style={{color:'#94a3b8'}}>$</span><input type="number" min="0" step="0.01" value={getVal(l,'alcSales')||''} onChange={e=>setVal(l,'alcSales',e.target.value)} style={{width:120,textAlign:'right'}} placeholder="0.00"/></div></td>
+              ))}
+              {locs.length>1&&<td style={{fontWeight:600,color:'#7c3aed'}}>{fmtCur(locs.reduce((s,l)=>s+(+getVal(l,'alcSales')||0),0))}</td>}
+            </tr>
+            <tr className="total-row">
+              <td>Total Gross Sales</td>
+              {locs.map(l=><td key={l}>{fmtCur((+getVal(l,'foodSales')||0)+(+getVal(l,'alcSales')||0))}</td>)}
+              {locs.length>1&&<td>{fmtCur(locs.reduce((s,l)=>s+(+getVal(l,'foodSales')||0)+(+getVal(l,'alcSales')||0),0))}</td>}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      {/* ── Revenue Summary ── */}
+      <div className="card" style={{padding:0}}>
+        <div style={{padding:'14px 16px',borderBottom:'1px solid #e2e8f0'}}>
+          <div style={{fontWeight:700,color:'#0f172a',fontSize:14,display:'flex',alignItems:'center',gap:8}}>
+            <div style={{width:4,height:16,background:'#1d4ed8',borderRadius:2}}/>
+            Revenue Summary
+            <span style={{fontSize:11,color:'#94a3b8',fontWeight:400}}>— from POS export (for record-keeping)</span>
+          </div>
+        </div>
+        <table>
+          <thead><tr><th style={{textAlign:'left',width:280}}>Line Item</th>{locs.map(l=><th key={l}>{l}</th>)}{locs.length>1&&<th>Total</th>}</tr></thead>
+          <tbody>
+            {REV_SUMMARY_FIELDS.map(f=>{
+              const isHL = f.highlight;
+              return (
+                <tr key={f.key} className={isHL?'subtotal-row':''}>
+                  <td style={{textAlign:'left',fontWeight:isHL?700:400,paddingLeft:isHL?12:24}}>{f.label}</td>
+                  {locs.map(l=>(
+                    <td key={l}>
+                      <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',gap:3}}>
+                        <span style={{color:'#94a3b8'}}>$</span>
+                        <input type="number" step="0.01" value={getVal(l,f.key)||''} onChange={e=>setVal(l,f.key,e.target.value)} style={{width:110,textAlign:'right',fontWeight:isHL?600:400}} placeholder="0.00"/>
+                      </div>
+                    </td>
+                  ))}
+                  {locs.length>1&&<td style={{fontWeight:isHL?700:400}}>{fmtCur(locs.reduce((s,l)=>s+(+getVal(l,f.key)||0),0))}</td>}
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function ExpenseEntry() {
+  const { data, setData, month, location } = useApp();
+  const allCats = useAllCategories();
+  const [form, setForm] = useState({date:month+'-01',vendor:'',amount:'',category:'Food',location:location===ALL_LOCS?LOCATIONS[0]:location,notes:''});
+  const [search, setSearch] = useState('');
+  const [showGenImport, setShowGenImport] = useState(false);
+  const [showEpsonImport, setShowEpsonImport] = useState(false);
+  const [dupWarn, setDupWarn] = useState(null);
+  const locs = location===ALL_LOCS ? LOCATIONS : [location];
+
+  const expenses = useMemo(()=>{
+    const all=data.expenses[month]||[];
+    const filtered=location===ALL_LOCS?all:all.filter(e=>e.location===location);
+    if(!search)return filtered;
+    const s=search.toLowerCase();
+    return filtered.filter(e=>e.vendor.toLowerCase().includes(s)||(e.notes||'').toLowerCase().includes(s));
+  },[data.expenses,month,location,search]);
+
+  const { plLines:dynPL, allPLLines:expPLLines } = usePLLines();
+  const vendorOptions = useMemo(()=>dynPL[form.category]||[],[form.category,dynPL]);
+
+  function handleCategoryChange(cat) { const v=dynPL[cat]||[]; setForm(f=>({...f,category:cat,vendor:v[0]||''})); }
+
+  // Inline duplicate warning when typing vendor+amount
+  useEffect(()=>{
+    if (form.vendor && form.amount) {
+      const d = quickDupCheck({vendor:form.vendor,amount:form.amount,date:form.date}, data.expenses[month]||[]);
+      setDupWarn(d);
+    } else { setDupWarn(null); }
+  },[form.vendor,form.amount,form.date,data.expenses,month]);
+
+  function addExpense() {
+    if(!form.vendor||!form.amount)return;
+    const entry={id:uid(),...form,amount:+form.amount};
+    setData(prev=>{ const d={...prev}; if(!d.expenses[month])d.expenses={...d.expenses,[month]:[]}; d.expenses[month]=[entry,...d.expenses[month]]; return d; });
+    setForm(f=>({...f,vendor:vendorOptions[0]||'',amount:'',notes:''}));
+    setDupWarn(null);
+  }
+
+  function deleteExpense(id) { setData(prev=>({...prev,expenses:{...prev.expenses,[month]:(prev.expenses[month]||[]).filter(e=>e.id!==id)}})); }
+  function updateExpense(id,key,val) {
+    setData(prev=>({...prev,expenses:{...prev.expenses,[month]:(prev.expenses[month]||[]).map(e=>e.id===id?{...e,[key]:key==='amount'?(+val||0):val}:e)}}));
+  }
+
+  // Rent helpers
+  function getRent(loc) { return((data.rent[month]||{})[loc])||''; }
+  function setRent(loc,val) {
+    setData(prev=>{ const d={...prev}; if(!d.rent[month]) d.rent={...d.rent,[month]:{}}; d.rent[month]={...d.rent[month],[loc]:+val||0}; return d; });
+  }
+  const totalRent = locs.reduce((s,l)=>s+(+getRent(l)||0),0);
+
+  const catBadge={Food:'badge-food',Alcohol:'badge-alcohol',Utilities:'badge-utilities',Other:'badge-other','Bank Card':'badge-bank'};
+  const total=expenses.reduce((s,e)=>s+(+e.amount||0),0);
+
+  return (
+    <div>
+      {showGenImport&&<ExpenseImportModal onClose={()=>setShowGenImport(false)}/>}
+      {showEpsonImport&&<EpsonImportModal onClose={()=>setShowEpsonImport(false)}/>}
+      <Header title="Expense Entry" subtitle="Log invoices, receipts, and vendor payments">
+        <button className="btn-primary" onClick={()=>setShowEpsonImport(true)} style={{display:'flex',alignItems:'center',gap:6}}>
+          <Icon name="scan"/>Epson Import
+        </button>
+        <button className="btn-amber" onClick={()=>setShowGenImport(true)} style={{display:'flex',alignItems:'center',gap:6}}>
+          <Icon name="import"/>CSV Import
+        </button>
+      </Header>
+
+      {/* Monthly Rent per Location */}
+      <div className="card" style={{marginBottom:16}}>
+        <div style={{fontWeight:700,color:'#0f172a',fontSize:14,marginBottom:14,display:'flex',alignItems:'center',gap:8}}>
+          <div style={{width:4,height:16,background:'#0891b2',borderRadius:2}}/>Monthly Rent
+          <span style={{fontSize:11,color:'#94a3b8',fontWeight:400}}>— flows to P&L → Utilities → RENT</span>
+        </div>
+        <div style={{display:'flex',gap:16,alignItems:'flex-end',flexWrap:'wrap'}}>
+          {locs.map(l=>(
+            <div key={l}>
+              <label style={{fontSize:11,color:'#64748b',display:'block',marginBottom:3}}>{l}</label>
+              <div style={{display:'flex',alignItems:'center',gap:3}}>
+                <span style={{color:'#94a3b8'}}>$</span>
+                <input type="number" min="0" step="0.01" value={getRent(l)||''} onChange={e=>setRent(l,e.target.value)} style={{width:120,textAlign:'right'}} placeholder="0.00"/>
+              </div>
+            </div>
+          ))}
+          <div style={{fontSize:13,fontWeight:600,color:'#0891b2',paddingBottom:4}}>Total: {fmtCur(totalRent)}</div>
+        </div>
+      </div>
+
+      {/* Add Expense Form */}
+      <div className="card" style={{marginBottom:16}}>
+        <div style={{fontWeight:600,color:'#0f172a',marginBottom:14,fontSize:14}}>Add Expense</div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr 1fr 1fr auto',gap:10,alignItems:'flex-end'}}>
+          <div><label style={{fontSize:11,color:'#64748b',display:'block',marginBottom:3}}>Date</label><input type="date" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))} style={{width:'100%'}}/></div>
+          <div><label style={{fontSize:11,color:'#64748b',display:'block',marginBottom:3}}>Location</label><select value={form.location} onChange={e=>setForm(f=>({...f,location:e.target.value}))} style={{width:'100%'}}>{LOCATIONS.map(l=><option key={l} value={l}>{l}</option>)}</select></div>
+          <div><label style={{fontSize:11,color:'#64748b',display:'block',marginBottom:3}}>Category</label><select value={form.category} onChange={e=>handleCategoryChange(e.target.value)} style={{width:'100%'}}>{allCats.map(c=><option key={c} value={c}>{c}</option>)}</select></div>
+          <div><label style={{fontSize:11,color:'#64748b',display:'block',marginBottom:3}}>Vendor</label><input list="vendor-opts" value={form.vendor} onChange={e=>setForm(f=>({...f,vendor:e.target.value.toUpperCase()}))} placeholder="Vendor name" style={{width:'100%'}}/><datalist id="vendor-opts">{vendorOptions.map(v=><option key={v} value={v}/>)}</datalist></div>
+          <div><label style={{fontSize:11,color:'#64748b',display:'block',marginBottom:3}}>Amount</label><div style={{display:'flex',alignItems:'center',gap:3}}><span style={{color:'#94a3b8'}}>$</span><input type="number" min="0" step="0.01" value={form.amount} onChange={e=>setForm(f=>({...f,amount:e.target.value}))} placeholder="0.00" style={{width:'100%',textAlign:'right'}}/></div></div>
+          <div><label style={{fontSize:11,color:'#64748b',display:'block',marginBottom:3}}>Notes</label><input value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} placeholder="Optional" style={{width:'100%'}}/></div>
+          <button className="btn-primary" onClick={addExpense} style={{display:'flex',alignItems:'center',gap:5}}><Icon name="add"/>Add</button>
+        </div>
+        {dupWarn && (
+          <div className="inline-dup-warn">
+            <Icon name="flag" size={14}/>
+            <span><b>Possible duplicate:</b> {dupWarn.vendor} for {fmtCur(dupWarn.amount)} on {dupWarn.date} already exists. You can still add it — it will show in both records.</span>
+          </div>
+        )}
+      </div>
+
+      {/* Expense Table */}
+      <div className="card" style={{padding:0}}>
+        <div style={{padding:'14px 16px',display:'flex',justifyContent:'space-between',alignItems:'center',borderBottom:'1px solid #f1f5f9'}}>
+          <div style={{fontWeight:600,color:'#0f172a',fontSize:14}}>Entries <span style={{color:'#94a3b8',fontWeight:400,fontSize:12}}>({expenses.length} records · {fmtCur(total)} total)</span></div>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search vendor / notes…" style={{fontSize:12,width:200}}/>
+        </div>
+        <div style={{overflowX:'auto'}}>
+          <table>
+            <thead><tr><th style={{textAlign:'left'}}>Date</th><th style={{textAlign:'left'}}>Location</th><th style={{textAlign:'left'}}>Category</th><th style={{textAlign:'left'}}>P&L Line Item</th><th style={{textAlign:'left'}}>Vendor</th><th>Amount</th><th style={{textAlign:'left'}}>Notes</th><th></th></tr></thead>
+            <tbody>
+              {expenses.length===0&&<tr><td colSpan={8} style={{textAlign:'center',color:'#94a3b8',padding:'32px 0'}}>No expenses recorded. Add manually, import from Epson, or upload CSV.</td></tr>}
+              {expenses.map(e=>(
+                <tr key={e.id}>
+                  <td style={{textAlign:'left'}}>{e.date}</td>
+                  <td style={{textAlign:'left'}}><select value={e.location||''} onChange={ev=>updateExpense(e.id,'location',ev.target.value)} style={{border:'none',background:'transparent',fontSize:13,padding:'2px 0'}}>{LOCATIONS.map(l=><option key={l} value={l}>{l}</option>)}</select></td>
+                  <td style={{textAlign:'left'}}><select value={e.category||'Other'} onChange={ev=>updateExpense(e.id,'category',ev.target.value)} style={{fontSize:11,padding:'2px 6px',borderRadius:999,fontWeight:600,border:'1px solid #e2e8f0'}} className={catBadge[e.category]||'badge-other'}>{allCats.map(c=><option key={c} value={c}>{c}</option>)}</select></td>
+                  <td style={{textAlign:'left'}}><select value={e.plLine||e.vendor||''} onChange={ev=>updateExpense(e.id,'plLine',ev.target.value)} style={{border:'none',background:'transparent',fontSize:12,padding:'2px 0'}}><option value="">—</option>{expPLLines.map(p=><option key={p} value={p}>{p}</option>)}</select></td>
+                  <td style={{textAlign:'left'}}><input value={e.vendor||''} onChange={ev=>updateExpense(e.id,'vendor',ev.target.value.toUpperCase())} style={{border:'none',background:'transparent',fontWeight:500,fontSize:13,width:'100%',padding:'2px 0',color:'#1e293b'}}/></td>
+                  <td style={{fontWeight:600,color:'#dc2626'}}>{fmtCur(e.amount)}</td>
+                  <td style={{textAlign:'left',color:'#94a3b8',fontSize:12}}>{e.notes}{e.invoiceNumber?` | Inv#${e.invoiceNumber}`:''}</td>
+                  <td><button className="btn-danger" style={{padding:'3px 8px'}} onClick={()=>deleteExpense(e.id)}><Icon name="trash"/></button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PayrollEntry() {
+  const { data, setData, month, location } = useApp();
+  const locs = location===ALL_LOCS?LOCATIONS:[location];
+  function getVal(loc,key) { return(((data.payroll[month]||{})[loc])||{})[key]||''; }
+  function setVal(loc,key,val) {
+    setData(prev=>{ const d={...prev}; if(!d.payroll[month])d.payroll={...d.payroll,[month]:{}}; if(!d.payroll[month][loc])d.payroll[month]={...d.payroll[month],[loc]:{}}; d.payroll[month][loc]={...d.payroll[month][loc],[key]:+val||0}; return d; });
+  }
+  function locTotal(loc) { const p=((data.payroll[month]||{})[loc])||{}; return PAYROLL_FIELDS.reduce((s,f)=>s+(f.key==='tips'?0:(+p[f.key]||0)),0); }
+  return (
+    <div>
+      <Header title="Payroll Entry" subtitle="Enter payroll costs by location"/>
+      <div className="card" style={{padding:0}}>
+        <table>
+          <thead><tr><th style={{textAlign:'left',width:180}}>Payroll Component</th>{locs.map(l=><th key={l}>{l}</th>)}</tr></thead>
+          <tbody>
+            {PAYROLL_FIELDS.map(f=>(
+              <tr key={f.key}>
+                <td>{f.label}</td>
+                {locs.map(l=>(
+                  <td key={l}>
+                    <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',gap:3}}>
+                      <span style={{color:'#94a3b8'}}>$</span>
+                      <input type="number" min="0" step="0.01" value={getVal(l,f.key)||''} onChange={e=>setVal(l,f.key,e.target.value)} style={{width:120,textAlign:'right'}} placeholder="0.00"/>
+                    </div>
+                  </td>
+                ))}
+              </tr>
+            ))}
+            <tr className="subtotal-row"><td><b>TOTAL PAYROLL</b></td>{locs.map(l=><td key={l}><b>{fmtCur(locTotal(l))}</b></td>)}</tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── CSV Vendor Batch Import Modal ────────────────────────────────────────────
+function VendorImportModal({ onClose }) {
+  const { data, setData } = useApp();
+  const { allPLLines, plLineCat } = usePLLines();
+  const [step, setStep] = useState(0);
+  const [rows, setRows] = useState([]);
+  const [headers, setHeaders] = useState([]);
+  const [mapping, setMapping] = useState({name:-1,plLine:-1,category:-1,subCategory:-1});
+  const [preview, setPreview] = useState([]);
+  const fileRef = useRef(null);
+
+  const FIELDS=[
+    {key:'name',label:'Vendor Name',keywords:['vendor','name','company','supplier','payee']},
+    {key:'plLine',label:'P&L Line Item',keywords:['p&l','pl','line item','account','pl line']},
+    {key:'category',label:'Category',keywords:['category','type','class','group']},
+    {key:'subCategory',label:'Sub-Category',keywords:['sub','subcategory','sub-category','detail']},
+  ];
+
+  function handleFile(file) {
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const parsed = parseCSV(e.target.result);
+      if(parsed.length<2) { alert('CSV must have a header row and at least one data row.'); return; }
+      const hdrs = parsed[0];
+      setHeaders(hdrs);
+      setRows(parsed.slice(1));
+      // Auto-detect columns
+      const m = {name:-1,plLine:-1,category:-1,subCategory:-1};
+      for(const f of FIELDS) {
+        for(let i=0;i<hdrs.length;i++) {
+          const h = hdrs[i].toLowerCase().trim();
+          if(f.keywords.some(k=>h.includes(k))) { m[f.key]=i; break; }
+        }
+      }
+      setMapping(m);
+      setStep(1);
+    };
+    reader.readAsText(file);
+  }
+
+  function buildPreview() {
+    return rows.map(r=>{
+      const name = mapping.name>=0 ? (r[mapping.name]||'').trim() : '';
+      const plLine = mapping.plLine>=0 ? (r[mapping.plLine]||'').trim().toUpperCase() : '';
+      let category = mapping.category>=0 ? (r[mapping.category]||'').trim() : '';
+      const subCategory = mapping.subCategory>=0 ? (r[mapping.subCategory]||'').trim() : '';
+      // Auto-set category from plLine if available
+      if(!category && plLine && plLineCat[plLine]) category = plLineCat[plLine];
+      if(!category) category = 'Other';
+      return { name, plLine, category, subCategory };
+    }).filter(v=>v.name);
+  }
+
+  function goToPreview() {
+    if(mapping.name<0) { alert('Please map the Vendor Name column.'); return; }
+    setPreview(buildPreview());
+    setStep(2);
+  }
+
+  function doImport() {
+    const newVendors = preview.map(v=>({id:uid(), name:v.name, plLine:v.plLine, category:v.category, subCategory:v.subCategory}));
+    setData(prev=>({...prev, vendors:[...prev.vendors, ...newVendors]}));
+    onClose();
+  }
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-box" style={{maxWidth:780}} onClick={e=>e.stopPropagation()}>
+        <div className="modal-header">
+          <div style={{fontWeight:700,fontSize:16}}>CSV Vendor Import</div>
+          <button onClick={onClose} style={{background:'none',border:'none',fontSize:20,color:'#64748b',cursor:'pointer'}}>×</button>
+        </div>
+        <div className="modal-body">
+          <StepBar steps={['Upload CSV','Map Columns','Preview & Import']} current={step}/>
+
+          {step===0 && (
+            <div>
+              <div className="drop-zone" onClick={()=>fileRef.current?.click()}
+                onDragOver={e=>{e.preventDefault();e.currentTarget.classList.add('drag-over');}}
+                onDragLeave={e=>e.currentTarget.classList.remove('drag-over')}
+                onDrop={e=>{e.preventDefault();e.currentTarget.classList.remove('drag-over');handleFile(e.dataTransfer.files[0]);}}>
+                <div style={{fontSize:28,marginBottom:8}}>📂</div>
+                <div style={{fontSize:14,fontWeight:600,color:'#374151',marginBottom:4}}>Drop your vendor CSV here</div>
+                <div style={{fontSize:12,color:'#94a3b8'}}>or click to browse — expects columns like: Vendor Name, P&L Line Item, Category</div>
+              </div>
+              <input ref={fileRef} type="file" accept=".csv,.txt" style={{display:'none'}} onChange={e=>handleFile(e.target.files[0])}/>
+            </div>
+          )}
+
+          {step===1 && (
+            <div>
+              <div style={{fontSize:13,fontWeight:600,color:'#374151',marginBottom:12}}>Map your CSV columns to vendor fields</div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
+                {FIELDS.map(f=>(
+                  <div key={f.key}>
+                    <label style={{fontSize:11,color:'#64748b',display:'block',marginBottom:3}}>{f.label} {f.key==='name'&&<span style={{color:'#dc2626'}}>*</span>}</label>
+                    <select value={mapping[f.key]} onChange={e=>setMapping(m=>({...m,[f.key]:+e.target.value}))} style={{width:'100%'}}>
+                      <option value={-1}>— Skip —</option>
+                      {headers.map((h,i)=><option key={i} value={i}>{h}</option>)}
+                    </select>
+                  </div>
+                ))}
+              </div>
+              <div style={{fontSize:12,color:'#64748b',marginBottom:8}}>Preview of first 3 rows:</div>
+              <table className="preview-table" style={{marginBottom:12}}>
+                <thead><tr>{headers.map((h,i)=><th key={i} style={{textAlign:'left',background:Object.values(mapping).includes(i)?'#dbeafe':'#f8fafc'}}>{h}</th>)}</tr></thead>
+                <tbody>{rows.slice(0,3).map((r,ri)=><tr key={ri}>{r.map((c,ci)=><td key={ci} style={{textAlign:'left',background:Object.values(mapping).includes(ci)?'#eff6ff':'transparent'}}>{c}</td>)}</tr>)}</tbody>
+              </table>
+            </div>
+          )}
+
+          {step===2 && (
+            <div>
+              <div style={{fontSize:13,fontWeight:600,color:'#374151',marginBottom:4}}>Ready to import {preview.length} vendor(s)</div>
+              <div style={{fontSize:12,color:'#94a3b8',marginBottom:12}}>Review the data below. Vendors will be added to your existing Vendor Map.</div>
+              <div style={{maxHeight:340,overflowY:'auto'}}>
+                <table className="preview-table">
+                  <thead><tr><th style={{textAlign:'left'}}>Vendor Name</th><th style={{textAlign:'left'}}>P&L Line Item</th><th style={{textAlign:'left'}}>Category</th><th style={{textAlign:'left'}}>Sub-Category</th></tr></thead>
+                  <tbody>
+                    {preview.map((v,i)=>(
+                      <tr key={i}>
+                        <td style={{textAlign:'left',fontWeight:500}}>{v.name}</td>
+                        <td style={{textAlign:'left'}}>{v.plLine||'—'}</td>
+                        <td style={{textAlign:'left'}}><span className={`badge ${{'Food':'badge-food','Alcohol':'badge-alcohol','Utilities':'badge-utilities','Other':'badge-other','Bank Card':'badge-bank'}[v.category]||'badge-other'}`}>{v.category}</span></td>
+                        <td style={{textAlign:'left'}}>{v.subCategory||'—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="modal-footer">
+          {step>0 && <button className="btn-ghost" onClick={()=>setStep(s=>s-1)}>Back</button>}
+          <button className="btn-ghost" onClick={onClose}>Cancel</button>
+          {step===1 && <button className="btn-primary" onClick={goToPreview}>Next: Preview</button>}
+          {step===2 && <button className="btn-success" onClick={doImport} style={{display:'flex',alignItems:'center',gap:5}}><Icon name="import"/>Import {preview.length} Vendors</button>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VendorManagement() {
+  const { data, setData } = useApp();
+  const allCats = useAllCategories();
+  const { plLines, allPLLines, plLineCat } = usePLLines();
+  const [form, setForm] = useState({name:'',plLine:'MISC EXPENSES',category:'Other',subCategory:''});
+  const [newCat, setNewCat] = useState('');
+  const [editCat, setEditCat] = useState(null); // { old, val }
+  const [search, setSearch] = useState('');
+  const [newLine, setNewLine] = useState({});
+  const [editingLine, setEditingLine] = useState(null); // {cat,idx,val}
+  const [showVendorImport, setShowVendorImport] = useState(false);
+  const vendors = useMemo(()=>{ const all=data.vendors||[]; if(!search)return all; const s=search.toLowerCase(); return all.filter(v=>v.name.toLowerCase().includes(s)||(v.plLine||'').toLowerCase().includes(s)||v.category.toLowerCase().includes(s)); },[data.vendors,search]);
+
+  function handlePlLineChange(val) { setForm(f=>({...f,plLine:val,category:plLineCat[val]||f.category})); }
+  function addVendor() { if(!form.name)return; setData(prev=>({...prev,vendors:[...prev.vendors,{id:uid(),name:form.name,plLine:form.plLine,category:form.category,subCategory:form.subCategory}]})); setForm(f=>({...f,name:'',subCategory:''})); }
+  function removeVendor(id) { if(!id)return; setData(prev=>({...prev,vendors:prev.vendors.filter(v=>v.id!==id)})); }
+  function updateVendor(id,key,val) {
+    if(!id) return;
+    setData(prev=>{
+      const dynCat = {};
+      const pl = prev.plLines || {};
+      for (const c in pl) (pl[c]||[]).forEach(v=>dynCat[v]=c);
+      return {...prev,vendors:prev.vendors.map(v=>{
+        if(!(v.id&&v.id===id)) return v;
+        const u={...v,[key]:val};
+        if(key==='plLine'&&dynCat[val]) u.category=dynCat[val];
+        return u;
+      })};
+    });
+  }
+
+  // ── P&L Line Items management ──
+  function addPLLine(cat) {
+    const name = (newLine[cat]||'').trim().toUpperCase();
+    if (!name) return;
+    if (allPLLines.includes(name)) { alert(`"${name}" already exists.`); return; }
+    setData(prev=>{
+      const pl = {...(prev.plLines||{})};
+      pl[cat] = [...(pl[cat]||[]), name];
+      return {...prev, plLines:pl};
+    });
+    setNewLine(prev=>({...prev,[cat]:''}));
+  }
+  function removePLLine(cat, idx) {
+    const lineName = (plLines[cat]||[])[idx];
+    if (!lineName) return;
+    const usedCount = Object.values(data.expenses||{}).flat().filter(e=>e.vendor===lineName).length;
+    if (usedCount > 0 && !confirm(`"${lineName}" is used in ${usedCount} expense(s). Remove anyway?`)) return;
+    setData(prev=>{
+      const d = {...prev};
+      const pl = {...(d.plLines||{})};
+      pl[cat] = (pl[cat]||[]).filter((_,i)=>i!==idx);
+      d.plLines = pl;
+      d.vendors = (d.vendors||[]).map(v=>v.plLine===lineName?{...v,plLine:''}:v);
+      return d;
+    });
+  }
+  function commitRenamePLLine(cat, idx, newName) {
+    const oldName = (plLines[cat]||[])[idx];
+    if (!oldName || oldName===newName) return;
+    setData(prev=>{
+      const d = {...prev};
+      const pl = {...(d.plLines||{})};
+      pl[cat] = [...(pl[cat]||[])];
+      pl[cat][idx] = newName;
+      d.plLines = pl;
+      d.vendors = (d.vendors||[]).map(v=>v.plLine===oldName?{...v,plLine:newName}:v);
+      const newExp = {};
+      for (const m in (d.expenses||{})) newExp[m] = (d.expenses[m]||[]).map(e=>e.vendor===oldName?{...e,vendor:newName}:e);
+      d.expenses = {...d.expenses,...newExp};
+      return d;
+    });
+  }
+
+  // Category management
+  function addCategory() {
+    if (!newCat.trim()) return;
+    const name = newCat.trim();
+    if (allCats.includes(name)) return;
+    setData(prev=>({...prev,customCategories:[...(prev.customCategories||[]),name]}));
+    setNewCat('');
+  }
+  function removeCategory(name) {
+    // Only custom categories can be removed
+    if (CATEGORIES.includes(name)) return;
+    const usedBy = (data.vendors||[]).filter(v=>v.category===name);
+    if (usedBy.length>0 && !confirm(`${usedBy.length} vendor(s) use "${name}". They will be set to "Other". Continue?`)) return;
+    setData(prev=>({
+      ...prev,
+      customCategories:(prev.customCategories||[]).filter(c=>c!==name),
+      vendors:(prev.vendors||[]).map(v=>v.category===name?{...v,category:'Other'}:v)
+    }));
+  }
+  function renameCategory(oldName, newName) {
+    if (!newName.trim() || newName===oldName) { setEditCat(null); return; }
+    const n = newName.trim();
+    if (CATEGORIES.includes(oldName)) return; // can't rename defaults
+    setData(prev=>({
+      ...prev,
+      customCategories:(prev.customCategories||[]).map(c=>c===oldName?n:c),
+      vendors:(prev.vendors||[]).map(v=>v.category===oldName?{...v,category:n}:v)
+    }));
+    setEditCat(null);
+  }
+
+  const catBadge={Food:'badge-food',Alcohol:'badge-alcohol',Utilities:'badge-utilities',Other:'badge-other','Bank Card':'badge-bank'};
+  const catCounts = useMemo(()=>{ const c={}; for(const v of(data.vendors||[])) c[v.category]=(c[v.category]||0)+1; return c; },[data.vendors]);
+
+  return (
+    <div>
+      {showVendorImport && <VendorImportModal onClose={()=>setShowVendorImport(false)}/>}
+      <Header title="Vendor Map" subtitle="Manage categories and vendor-to-category assignments">
+        <button className="btn-amber" onClick={()=>setShowVendorImport(true)} style={{display:'flex',alignItems:'center',gap:6}}>
+          <Icon name="import"/>CSV Vendor Import
+        </button>
+      </Header>
+
+      {/* ── Category Manager ── */}
+      <div className="card" style={{marginBottom:16}}>
+        <div style={{fontWeight:700,color:'#0f172a',fontSize:14,marginBottom:14,display:'flex',alignItems:'center',gap:8}}>
+          <div style={{width:4,height:16,background:'#6366f1',borderRadius:2}}/>
+          Expense Categories
+          <span style={{fontSize:11,color:'#94a3b8',fontWeight:400}}>— used to group vendors in the P&L</span>
+        </div>
+        <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:12}}>
+          {allCats.map(c=>{
+            const isDefault = CATEGORIES.includes(c);
+            const isEditing = editCat && editCat.old===c;
+            return (
+              <div key={c} style={{display:'flex',alignItems:'center',gap:4,background:isDefault?'#f1f5f9':'#ede9fe',border:`1px solid ${isDefault?'#e2e8f0':'#c4b5fd'}`,borderRadius:8,padding:'4px 10px'}}>
+                {isEditing ? (
+                  <input autoFocus value={editCat.val} onChange={e=>setEditCat({old:c,val:e.target.value})}
+                    onBlur={()=>renameCategory(c,editCat.val)} onKeyDown={e=>{if(e.key==='Enter')renameCategory(c,editCat.val);if(e.key==='Escape')setEditCat(null);}}
+                    style={{width:100,fontSize:12,padding:'1px 4px',border:'1px solid #a78bfa',borderRadius:4}}/>
+                ) : (
+                  <span style={{fontSize:12.5,fontWeight:600,color:isDefault?'#374151':'#5b21b6',cursor:isDefault?'default':'pointer'}}
+                    onClick={()=>{if(!isDefault) setEditCat({old:c,val:c});}}
+                    title={isDefault?'Default category':'Click to rename'}>
+                    {c}
+                  </span>
+                )}
+                <span style={{fontSize:10,color:'#94a3b8'}}>({catCounts[c]||0})</span>
+                {!isDefault && (
+                  <button onClick={()=>removeCategory(c)} style={{background:'none',border:'none',padding:'0 2px',color:'#dc2626',cursor:'pointer',fontSize:12}} title="Delete category">×</button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+          <input value={newCat} onChange={e=>setNewCat(e.target.value)} placeholder="New category name…" style={{width:200,fontSize:12}}
+            onKeyDown={e=>{if(e.key==='Enter') addCategory();}} />
+          <button className="btn-primary" onClick={addCategory} style={{fontSize:12,padding:'5px 12px',display:'flex',alignItems:'center',gap:4}}><Icon name="add" size={12}/>Add Category</button>
+        </div>
+        <div style={{fontSize:11,color:'#94a3b8',marginTop:8}}>Default categories (Food, Alcohol, Utilities, Other, Bank Card) cannot be removed. Custom categories can be renamed by clicking on them.</div>
+      </div>
+
+      {/* ── P&L Line Items Editor ── */}
+      <div className="card" style={{marginBottom:16}}>
+        <div style={{fontWeight:700,color:'#0f172a',fontSize:14,marginBottom:14,display:'flex',alignItems:'center',gap:8}}>
+          <div style={{width:4,height:16,background:'#1d4ed8',borderRadius:2}}/>
+          P&L Line Items
+          <span style={{fontSize:11,color:'#94a3b8',fontWeight:400}}>— vendor rows that appear on the P&L Report (click name to rename, press Enter to save)</span>
+        </div>
+        {CATEGORIES.map(cat=>(
+          <div key={cat} style={{marginBottom:16}}>
+            <div style={{fontSize:12,fontWeight:700,color:'#475569',marginBottom:6,textTransform:'uppercase',letterSpacing:'.04em'}}>{cat} <span style={{fontWeight:400,color:'#94a3b8'}}>({(plLines[cat]||[]).length})</span></div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:8}}>
+              {(plLines[cat]||[]).map((item,idx)=>{
+                const isEd = editingLine && editingLine.cat===cat && editingLine.idx===idx;
+                return (
+                  <div key={idx} style={{display:'flex',alignItems:'center',gap:4,background:'#f8fafc',border:'1px solid #e2e8f0',borderRadius:6,padding:'3px 8px'}}>
+                    <input
+                      value={isEd ? editingLine.val : item}
+                      onChange={e=>setEditingLine({cat,idx,val:e.target.value})}
+                      onFocus={()=>setEditingLine({cat,idx,val:item})}
+                      onBlur={()=>{ if(editingLine && editingLine.val!==item) commitRenamePLLine(cat,idx,editingLine.val); setEditingLine(null); }}
+                      onKeyDown={e=>{if(e.key==='Enter'){e.target.blur();}if(e.key==='Escape'){setEditingLine(null);e.target.blur();}}}
+                      style={{border:'none',background:'transparent',fontSize:12,fontWeight:500,width:Math.max(70,item.length*7.5+16),color:'#1e293b'}}
+                    />
+                    <button onClick={()=>removePLLine(cat,idx)} style={{background:'none',border:'none',color:'#dc2626',cursor:'pointer',fontSize:14,padding:'0 2px',lineHeight:1}} title="Remove line item">×</button>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{display:'flex',gap:6,alignItems:'center'}}>
+              <input value={newLine[cat]||''} onChange={e=>setNewLine(prev=>({...prev,[cat]:e.target.value}))} placeholder={`Add ${cat} line item…`} style={{fontSize:12,width:200}} onKeyDown={e=>{if(e.key==='Enter')addPLLine(cat);}}/>
+              <button className="btn-ghost" onClick={()=>addPLLine(cat)} style={{fontSize:11,padding:'4px 10px'}}>+ Add</button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Add Vendor ── */}
+      <div className="card" style={{marginBottom:16}}>
+        <div style={{fontWeight:600,color:'#0f172a',marginBottom:12,fontSize:14}}>Add Vendor</div>
+        <div style={{display:'flex',gap:10,alignItems:'flex-end',flexWrap:'wrap'}}>
+          <div><label style={{fontSize:11,color:'#64748b',display:'block',marginBottom:3}}>Vendor Name (as entered)</label><input value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} placeholder="Vendor Name" style={{width:200}}/></div>
+          <div><label style={{fontSize:11,color:'#64748b',display:'block',marginBottom:3}}>P&L Line Item</label><select value={form.plLine} onChange={e=>handlePlLineChange(e.target.value)} style={{width:180}}>{allPLLines.map(p=><option key={p} value={p}>{p}</option>)}</select></div>
+          <div><label style={{fontSize:11,color:'#64748b',display:'block',marginBottom:3}}>Category</label><select value={form.category} onChange={e=>setForm(f=>({...f,category:e.target.value}))} style={{width:140}}>{allCats.map(c=><option key={c} value={c}>{c}</option>)}</select></div>
+          <div><label style={{fontSize:11,color:'#64748b',display:'block',marginBottom:3}}>Sub-Category</label><input value={form.subCategory} onChange={e=>setForm(f=>({...f,subCategory:e.target.value}))} placeholder="Optional" style={{width:140}}/></div>
+          <button className="btn-primary" onClick={addVendor} style={{display:'flex',alignItems:'center',gap:5}}><Icon name="add"/>Add Vendor</button>
+        </div>
+      </div>
+
+      {/* ── Vendor Table ── */}
+      <div className="card" style={{padding:0}}>
+        <div style={{padding:'14px 16px',display:'flex',justifyContent:'space-between',alignItems:'center',borderBottom:'1px solid #f1f5f9'}}>
+          <div style={{fontWeight:600,color:'#0f172a',fontSize:14}}>Vendor Map <span style={{color:'#94a3b8',fontWeight:400,fontSize:12}}>({vendors.length})</span></div>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search…" style={{fontSize:12,width:180}}/>
+        </div>
+        <table>
+          <thead><tr><th style={{textAlign:'left'}}>Vendor Name (as entered)</th><th style={{textAlign:'left'}}>P&L Line Item</th><th style={{textAlign:'left'}}>Category</th><th style={{textAlign:'left'}}>Sub-Category</th><th></th></tr></thead>
+          <tbody>
+            {vendors.map(v=>(
+              <tr key={v.id}>
+                <td style={{textAlign:'left',fontWeight:500}}><input value={v.name} onChange={e=>updateVendor(v.id,'name',e.target.value)} style={{border:'none',background:'transparent',fontWeight:500,fontSize:13,width:'100%',padding:'2px 0',color:'#1e293b'}} /></td>
+                <td style={{textAlign:'left'}}><select value={v.plLine||''} onChange={e=>updateVendor(v.id,'plLine',e.target.value)} style={{fontSize:12,padding:'2px 6px'}}><option value="">—</option>{allPLLines.map(p=><option key={p} value={p}>{p}</option>)}</select></td>
+                <td style={{textAlign:'left'}}><select value={v.category} onChange={e=>updateVendor(v.id,'category',e.target.value)} style={{fontSize:12,padding:'2px 6px'}}>{allCats.map(c=><option key={c} value={c}>{c}</option>)}</select></td>
+                <td style={{textAlign:'left'}}><input value={v.subCategory||''} onChange={e=>updateVendor(v.id,'subCategory',e.target.value)} style={{fontSize:12,padding:'2px 6px',width:120}} placeholder="—"/></td>
+                <td><button className="btn-danger" style={{padding:'3px 8px'}} onClick={()=>removeVendor(v.id)}><Icon name="trash"/></button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── Duplicates Review Page ───────────────────────────────────────────────────
+function DuplicatesReview() {
+  const { data, setData, setPage } = useApp();
+  const pending = useMemo(()=>(data.flaggedDuplicates||[]).filter(f=>f.status==='pending'),[data.flaggedDuplicates]);
+  const highCount = pending.filter(f=>f.confidence==='HIGH').length;
+  const medCount  = pending.filter(f=>f.confidence==='MED').length;
+
+  function resolveKeepExisting(flagId) {
+    // Discard the incoming entry, just remove the flag
+    setData(prev=>({...prev, flaggedDuplicates:(prev.flaggedDuplicates||[]).filter(f=>f.id!==flagId)}));
+  }
+
+  function resolveKeepBoth(flagId) {
+    // Add incoming to expenses + remove flag
+    const flag = (data.flaggedDuplicates||[]).find(f=>f.id===flagId);
+    if (!flag) return;
+    setData(prev=>{
+      const d={...prev};
+      const m = flag.month || Object.keys(d.expenses).pop() || getCurrentMonth();
+      if (!d.expenses[m]) d.expenses={...d.expenses,[m]:[]};
+      d.expenses[m] = [flag.incoming, ...d.expenses[m]];
+      d.flaggedDuplicates = (d.flaggedDuplicates||[]).filter(f=>f.id!==flagId);
+      return d;
+    });
+  }
+
+  function resolveReplaceExisting(flagId) {
+    // Delete old, add incoming, remove flag
+    const flag = (data.flaggedDuplicates||[]).find(f=>f.id===flagId);
+    if (!flag) return;
+    setData(prev=>{
+      const d={...prev};
+      const m = flag.month || Object.keys(d.expenses).pop() || getCurrentMonth();
+      // Remove old
+      for (const mo in d.expenses) d.expenses[mo] = (d.expenses[mo]||[]).filter(e=>e.id!==flag.existingId);
+      // Add new
+      if (!d.expenses[m]) d.expenses={...d.expenses,[m]:[]};
+      d.expenses[m] = [flag.incoming, ...d.expenses[m]];
+      d.flaggedDuplicates = (d.flaggedDuplicates||[]).filter(f=>f.id!==flagId);
+      return d;
+    });
+  }
+
+  function resolveAll(action) {
+    if (!confirm(`${action==='discard'?'Discard':'Keep'} all ${pending.length} flagged entries?`)) return;
+    if (action==='discard') {
+      setData(prev=>({...prev, flaggedDuplicates:[]}));
+    } else {
+      setData(prev=>{
+        const d={...prev};
+        for (const flag of pending) {
+          const m = flag.month || getCurrentMonth();
+          if (!d.expenses[m]) d.expenses={...d.expenses,[m]:[]};
+          d.expenses[m] = [flag.incoming, ...d.expenses[m]];
+        }
+        d.flaggedDuplicates = [];
+        return d;
+      });
+    }
+  }
+
+  function Field({label,value}) {
+    return <div><div className="dup-field">{label}</div><div className="dup-value">{value||'—'}</div></div>;
+  }
+
+  return (
+    <div>
+      <Header title="Duplicate Review" subtitle="Resolve flagged invoices and receipts"/>
+
+      {pending.length===0 ? (
+        <div className="card" style={{textAlign:'center',padding:'50px 20px'}}>
+          <div style={{fontSize:44,marginBottom:12}}>✅</div>
+          <div style={{fontWeight:700,fontSize:18,color:'#0f172a',marginBottom:6}}>All clear!</div>
+          <div style={{color:'#64748b',fontSize:14}}>No duplicate invoices or receipts to review.</div>
+          <button className="btn-primary" style={{marginTop:16}} onClick={()=>setPage('expenses')}>Go to Expense Entry</button>
+        </div>
+      ) : (
+        <div>
+          {/* Summary bar */}
+          <div style={{display:'flex',gap:12,marginBottom:18,alignItems:'center',flexWrap:'wrap'}}>
+            <div style={{display:'flex',alignItems:'center',gap:6,fontSize:13}}>
+              <span className="conf-badge-high">HIGH</span> <span style={{fontWeight:600}}>{highCount}</span>
+            </div>
+            <div style={{display:'flex',alignItems:'center',gap:6,fontSize:13}}>
+              <span className="conf-badge-med">MEDIUM</span> <span style={{fontWeight:600}}>{medCount}</span>
+            </div>
+            <div style={{flex:1}}/>
+            <button className="btn-ghost" onClick={()=>resolveAll('discard')} style={{fontSize:12}}>Discard All</button>
+            <button className="btn-success" onClick={()=>resolveAll('keepAll')} style={{fontSize:12}}>Keep All (import all)</button>
+          </div>
+
+          {/* Flag cards */}
+          {pending.map(flag=>(
+            <div key={flag.id} className={`dup-card${flag.confidence==='MED'?' med':''}`}>
+              <div className="dup-card-header">
+                <span className={flag.confidence==='HIGH'?'conf-badge-high':'conf-badge-med'}>{flag.confidence}</span>
+                <span style={{fontSize:12.5,color:'#374151',fontWeight:500}}>{flag.reason}</span>
+              </div>
+              <div style={{display:'flex'}}>
+                <div className="dup-side existing">
+                  <div style={{fontSize:10,textTransform:'uppercase',letterSpacing:'.06em',color:'#94a3b8',fontWeight:700,marginBottom:8}}>Existing Record</div>
+                  <Field label="Date" value={flag.existing.date}/>
+                  <Field label="Vendor" value={flag.existing.vendor}/>
+                  <Field label="Amount" value={fmtCur(flag.existing.amount)}/>
+                  <Field label="Invoice #" value={flag.existing.invoiceNumber}/>
+                  <Field label="Category" value={flag.existing.category}/>
+                  <Field label="Location" value={flag.existing.location}/>
+                </div>
+                <div className="dup-side">
+                  <div style={{fontSize:10,textTransform:'uppercase',letterSpacing:'.06em',color:'#d97706',fontWeight:700,marginBottom:8}}>Incoming (New)</div>
+                  <Field label="Date" value={flag.incoming.date}/>
+                  <Field label="Vendor" value={flag.incoming.vendor}/>
+                  <Field label="Amount" value={fmtCur(flag.incoming.amount)}/>
+                  <Field label="Invoice #" value={flag.incoming.invoiceNumber}/>
+                  <Field label="Category" value={flag.incoming.category}/>
+                  <Field label="Location" value={flag.incoming.location}/>
+                </div>
+              </div>
+              <div style={{display:'flex',gap:8,padding:'10px 16px',borderTop:'1px solid #f1f5f9',background:'#fafafa'}}>
+                <button className="btn-danger" onClick={()=>resolveKeepExisting(flag.id)} style={{fontSize:12,display:'flex',alignItems:'center',gap:4}}>
+                  <Icon name="x" size={12}/>Discard New
+                </button>
+                <button className="btn-success" onClick={()=>resolveKeepBoth(flag.id)} style={{fontSize:12,display:'flex',alignItems:'center',gap:4}}>
+                  <Icon name="check" size={12}/>Keep Both
+                </button>
+                <button className="btn-amber" onClick={()=>resolveReplaceExisting(flag.id)} style={{fontSize:12,display:'flex',alignItems:'center',gap:4}}>
+                  <Icon name="swap" size={12}/>Replace Existing
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── App Root ─────────────────────────────────────────────────────────────────
+function App() {
+  const [page,setPage]=useState('dashboard');
+  const [month,setMonth]=useState(getCurrentMonth());
+  const [location,setLocation]=useState(ALL_LOCS);
+  const [data,setDataRaw]=useState(loadData);
+  const setData=useCallback((updater)=>{
+    setDataRaw(prev=>{ const next=typeof updater==='function'?updater(prev):updater; saveData(next); return next; });
+  },[]);
+  const ctx={data,setData,month,setMonth,location,setLocation,page,setPage};
+  const pages={dashboard:Dashboard,pl:PLReport,revenue:RevenueEntry,expenses:ExpenseEntry,payroll:PayrollEntry,vendors:VendorManagement,duplicates:DuplicatesReview};
+  const PageComponent=pages[page]||Dashboard;
+  return (
+    <Ctx.Provider value={ctx}>
+      <div style={{display:'flex',minHeight:'100vh'}}>
+        <Sidebar page={page} setPage={setPage}/>
+        <div className="main-content"><PageComponent/></div>
+      </div>
+    </Ctx.Provider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
