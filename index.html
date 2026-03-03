@@ -420,8 +420,9 @@ const Icon = ({ name, size=16 }) => {
 
 // ─── Sidebar ──────────────────────────────────────────────────────────────────
 function Sidebar({ page, setPage }) {
-  const { data } = useApp();
+  const { data, setData } = useApp();
   const pendingCount = useMemo(() => (data.flaggedDuplicates||[]).filter(f=>f.status==='pending').length, [data.flaggedDuplicates]);
+  const importRef = useRef();
   const nav = [
     {id:'dashboard',label:'Dashboard',icon:'dashboard'},
     {id:'pl',label:'P&L Report',icon:'pl'},
@@ -431,6 +432,38 @@ function Sidebar({ page, setPage }) {
     {id:'vendors',label:'Vendor Map',icon:'vendor'},
     {id:'duplicates',label:'Dup. Review',icon:'flag', badge: pendingCount},
   ];
+
+  function handleExport() {
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pl-data-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleImport(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const imported = JSON.parse(ev.target.result);
+        if (!imported || typeof imported !== 'object') throw new Error('Invalid');
+        if (!confirm('This will replace ALL current data with the imported file. Continue?')) return;
+        setData(migrateLegacy(imported));
+        alert('Data imported successfully! The page will reload.');
+        window.location.reload();
+      } catch(err) {
+        alert('Invalid backup file. Please select a valid .json export.');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  }
+
   return (
     <div className="sidebar">
       <div style={{padding:'20px 16px 16px'}}>
@@ -445,7 +478,18 @@ function Sidebar({ page, setPage }) {
           </div>
         ))}
       </div>
-      <div style={{padding:'12px 16px',color:'#475569',fontSize:11,borderTop:'1px solid #1e293b'}}>v4.3 · Editable P&L Lines</div>
+      <div style={{padding:'8px 8px 12px',borderTop:'1px solid #1e293b'}}>
+        <div style={{display:'flex',gap:4,marginBottom:8}}>
+          <button onClick={handleExport} style={{flex:1,background:'#1e293b',color:'#94a3b8',border:'1px solid #334155',borderRadius:6,padding:'6px 8px',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:4}}>
+            <Icon name="export" size={12}/> Export
+          </button>
+          <button onClick={()=>importRef.current.click()} style={{flex:1,background:'#1e293b',color:'#94a3b8',border:'1px solid #334155',borderRadius:6,padding:'6px 8px',fontSize:11,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:4}}>
+            <Icon name="import" size={12}/> Import
+          </button>
+          <input ref={importRef} type="file" accept=".json" style={{display:'none'}} onChange={handleImport}/>
+        </div>
+        <div style={{color:'#475569',fontSize:11,paddingLeft:8}}>v4.4 · Data Export/Import</div>
+      </div>
     </div>
   );
 }
